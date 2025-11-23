@@ -1,0 +1,38 @@
+query intellectualPropertyCategory($ipCategoryId: ID!) {
+  intellectualPropertyCategory(ipCategoryId: $ipCategoryId) {
+    id
+    name
+    price
+    salesStartDate
+    salesEndDate
+    fee
+    precautions
+    isHidden
+    imgUrl
+    createdAt
+    updatedAt
+    rankGroups {
+      id
+      ip_category_id
+      name
+      rank
+      emissionRate
+      explanation
+      isHidden
+      comments
+      imgUrl
+      createdAt
+      updatedAt
+      properties {
+        id
+        name
+        stock
+        isHidden
+        imgUrl
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}
+

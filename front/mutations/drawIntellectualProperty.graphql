@@ -1,0 +1,12 @@
+mutation drawIntellectualProperty($input: DrawIntellectualPropertyInput!) {
+  drawIntellectualProperty(input: $input) {
+    id
+    name
+    stock
+    isHidden
+    imgUrl
+    createdAt
+    updatedAt
+  }
+}
+

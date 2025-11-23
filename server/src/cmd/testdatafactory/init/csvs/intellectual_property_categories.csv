@@ -1,0 +1,4 @@
+id,name,price,sales_start_date,sales_end_date,fee,precautions,is_hidden,img_url
+,カテゴリ1,1000.00,2025-01-01,2025-12-31,100.00,注意事項1,false,https://example.com/img1.jpg
+,カテゴリ2,2000.00,2025-02-01,2025-11-30,200.00,注意事項2,false,https://example.com/img2.jpg
+

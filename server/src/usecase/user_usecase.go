@@ -1,0 +1,28 @@
+package usecase
+
+import (
+	"context"
+
+	"kujicole/domain/model"
+	"kujicole/domain/repository"
+)
+
+type userUseCase struct {
+	repos *repository.Repositories
+}
+
+var _ UserUseCase = &userUseCase{}
+
+func NewUserUseCase(repos *repository.Repositories) *userUseCase {
+	return &userUseCase{
+		repos: repos,
+	}
+}
+
+func (u *userUseCase) ListUsers(ctx context.Context) ([]*model.User, error) {
+	users, err := u.repos.User.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}

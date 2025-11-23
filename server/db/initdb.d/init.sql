@@ -1,0 +1,4 @@
+-- TODO: データベース名は要検討
+CREATE DATABASE IF NOT EXISTS `kujicole-server` 
+DEFAULT CHARACTER SET utf8mb4
+DEFAULT COLLATE utf8mb4_bin;

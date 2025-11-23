@@ -1,0 +1,42 @@
+no-tests: true
+
+plugins:
+  dbinfo:
+    disabled: true
+  enums:
+    destination: "infra/bob/enums"
+  models:
+    destination: "infra/bob/models"
+  factory:
+    disabled: true
+  dberrors:
+    disabled: true
+
+mysql:
+  dsn: "root:secret@tcp(db:3306)/kujicole-server?parseTime=true"
+  except:
+    "gorp_migrations":
+
+types:
+  - match:
+      type: "float32"
+      nullable: false
+    replace:
+      type: "float64"
+  
+  - match:
+      db_type: "decimal"
+      nullable: true
+    replace:
+      type: "decimal.NullDecimal"
+    imports:
+      third_party:
+        - "github.com/shopspring/decimal"
+  
+  - match:
+      type: "types.Decimal"
+    replace:
+      type: "decimal.Decimal"
+    imports:
+      third_party:
+        - "github.com/shopspring/decimal"

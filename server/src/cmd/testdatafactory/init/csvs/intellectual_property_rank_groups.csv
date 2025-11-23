@@ -1,0 +1,10 @@
+id,ip_category_id,name,rank,emission_rate,explanation,is_hidden,comments,img_url
+,,ランクグループS,S,1,最高ランク,false,コメントS,https://example.com/rank_s.jpg
+,,ランクグループA,A,10,高ランク,false,コメントA,https://example.com/rank_a.jpg
+,,ランクグループB,B,20,中ランク,false,コメントB,https://example.com/rank_b.jpg
+,,ランクグループC,C,26,中ランク,false,コメントC,https://example.com/rank_c.jpg
+,,ランクグループD,D,43,中ランク,false,コメントD,https://example.com/rank_d.jpg
+,,ランクグループS,S,2,最高ランク,false,コメントS,https://example.com/rank_s.jpg
+,,ランクグループA,A,12,高ランク,false,コメントA,https://example.com/rank_a.jpg
+,,ランクグループB,B,38,中ランク,false,コメントB,https://example.com/rank_b.jpg
+,,ランクグループC,C,48,中ランク,false,コメントC,https://example.com/rank_c.jpg

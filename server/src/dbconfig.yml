@@ -1,0 +1,4 @@
+development:
+  dialect: mysql
+  datasource: root:secret@tcp(db:3306)/kujicole-server?parseTime=true&charset=utf8mb4&loc=Asia%2FTokyo
+  dir: ./migrations

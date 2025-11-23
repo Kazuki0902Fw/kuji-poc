@@ -1,0 +1,6 @@
+query checkStock($input: CheckStockInput!) {
+  checkStock(input: $input) {
+    isStockAvailable
+  }
+}
+

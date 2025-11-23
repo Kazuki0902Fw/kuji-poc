@@ -1,0 +1,179 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+scalar Date
+scalar DateTime
+
+enum Gender {
+  male
+  female
+}
+
+type User {
+  id: ID!
+  nickname: String!
+  password: String!
+  birthdate: Date!
+  gender: Gender!
+  isAdmin: Boolean!
+  isMailmagazine: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type IntellectualPropertyCategory {
+  id: ID!
+  name: String!
+  price: Float!
+  salesStartDate: Date!
+  salesEndDate: Date!
+  fee: Float!
+  precautions: String
+  isHidden: Boolean!
+  imgUrl: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  rankGroups: [IntellectualPropertyRankGroup!]
+}
+
+enum IntellectualPropertyRank {
+  S
+  A
+  B
+  C
+  D
+  E
+}
+
+type IntellectualPropertyRankGroup {
+  id: ID!
+  ip_category_id: ID!
+  name: String!
+  rank: IntellectualPropertyRank!
+  emissionRate: Int!
+  explanation: String
+  isHidden: Boolean!
+  comments: String
+  imgUrl: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  properties: [IntellectualProperty!]!
+}
+
+type IntellectualProperty {
+  id: ID!
+  ipRankGroupId: ID!
+  name: String!
+  stock: Int!
+  isHidden: Boolean!
+  imgUrl: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type IntellectualPropertyTransaction {
+  id: ID!
+  userId: ID!
+  ipCategoryId: ID!
+  purchaseQuantity: Int!
+  purchasePrice: Float!
+  paymentMethod: String!
+  providerTransactionId: String!
+  status: String!
+  paidAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Query {
+  # 登録されているユーザー一覧（管理画面用）
+    # 各ユーザーの何を表示させるか
+    # - 基本情報
+    # - 配送先
+    # - クレジットカード
+    # - 購入履歴
+  users: [User!]! # @isAdmin
+  # トップページで表示するカテゴリー一覧(くじ引きアプリ・管理画面用)
+  intellectualPropertyCategories: [IntellectualPropertyCategory!]!
+  # トップページで選択されたカテゴリーの詳細(くじ引きアプリ用)
+  intellectualPropertyCategory(ipCategoryId: ID!): IntellectualPropertyCategory!
+  # 在庫チェック(くじ引きアプリ用)
+  checkStock(input: CheckStockInput!): CheckStockResult!
+  # -------
+  # ナビゲーションバー周り
+  # -------
+  # くじ結果一覧（購入履歴）(くじ引きアプリ用)
+  # drawIntellectualPropertyResults: [DrawIntellectualPropertyResult!]!
+  # 基本情報・メルマガ配信設定(くじ引きアプリ用)
+  # user(userId: ID!): User!
+  # 配送先(くじ引きアプリ用)
+  # shippingAddresses: [ShippingAddress!]!
+  # クレジットカード(くじ引きアプリ用)
+  # creditCards: [CreditCard!]!
+  # 購入履歴(くじ引きアプリ用)
+  # purchaseTransactions: [PurchaseTransaction!]!
+  # お問い合わせ一覧(管理画面用)
+  # contacts: [Contact!]! @isAdmin
+  # お知らせ一覧(くじ引きアプリ用)
+  # notifications: [Notification!]!
+}
+input CheckStockInput {
+  # ログイン機能が実装されたら追加
+  # userId: ID!
+  ipCategoryId: ID!
+  drawCount: Int!
+}
+type CheckStockResult {
+  isStockAvailable: Boolean!
+}
+
+input DrawIntellectualPropertyInput {
+  # ログイン機能が実装されたら追加
+  # userId: ID!
+  ipCategoryId: ID!
+  drawCount: Int!
+}
+
+type Mutation {
+  # くじを引く(くじ引きアプリ用)
+  drawIntellectualProperty(input: DrawIntellectualPropertyInput!): [IntellectualProperty!]!
+  # カテゴリーを追加(管理画面用)
+  # createIntellectualPropertyCategory(input: CreateIntellectualPropertyCategoryInput!): IntellectualPropertyCategory!
+  # カテゴリーを更新(管理画面用)
+  # updateIntellectualPropertyCategory(input: UpdateIntellectualPropertyCategoryInput!): IntellectualPropertyCategory!
+  # カテゴリーを削除(管理画面用)
+  # deleteIntellectualPropertyCategory(input: DeleteIntellectualPropertyCategoryInput!): Boolean!
+  # ランクグループを追加(管理画面用)
+  # createIntellectualPropertyRankGroup(input: CreateIntellectualPropertyRankGroupInput!): IntellectualPropertyRankGroup!
+  # ランクグループを更新(管理画面用)
+  # updateIntellectualPropertyRankGroup(input: UpdateIntellectualPropertyRankGroupInput!): IntellectualPropertyRankGroup!
+  # ランクグループを削除(管理画面用)
+  # deleteIntellectualPropertyRankGroup(input: DeleteIntellectualPropertyRankGroupInput!): Boolean!
+  # プロパティを追加(管理画面用)
+  # createIntellectualProperty(input: CreateIntellectualPropertyInput!): IntellectualProperty!
+  # プロパティを更新(管理画面用)
+  # updateIntellectualProperty(input: UpdateIntellectualPropertyInput!): IntellectualProperty!
+  # プロパティを削除(管理画面用)
+  # deleteIntellectualProperty(input: DeleteIntellectualPropertyInput!): Boolean!
+  # ユーザーを追加(管理画面用)
+  # createUser(input: CreateUserInput!): User!
+  # ユーザーを更新(管理画面用)
+  # updateUser(input: UpdateUserInput!): User!
+  # ユーザーを削除(管理画面用)
+  # deleteUser(input: DeleteUserInput!): Boolean!
+  # 基本情報変更(くじ引きアプリ用)
+  # updateUserBasicInformation(input: UpdateUserBasicInformationInput!): User!
+  # メルマガ配信設定変更(くじ引きアプリ用)
+  # updateUserMailmagazineSetting(input: UpdateUserMailmagazineSettingInput!): User!
+  # 配送先変更(くじ引きアプリ用)
+  # updateUserShippingAddress(input: UpdateUserShippingAddressInput!): User!
+  # クレジットカード変更(くじ引きアプリ用)
+  # updateUserCreditCard(input: UpdateUserCreditCardInput!): User!
+  # お問い合わせ保存(くじ引きアプリ用)
+  # saveContact(input: SaveContactInput!): Contact!
+  # お知らせ保存(くじ引きアプリ用)
+  # saveNotification(input: SaveNotificationInput!): Notification!
+}
