@@ -1,3 +1,3 @@
-id,nickname,birthdate,gender,is_admin,is_mailmagazine
-,小暮(管理者),1996-07-15,male,true,false
-,小暮(一般),1998-04-10,male,false,false
+mail_address,nickname,birthdate,gender,is_admin,is_mailmagazine
+test@example.com,小暮(管理者),1996-07-15,male,true,false
+test2@example.com,小暮(一般),1998-04-10,male,false,false

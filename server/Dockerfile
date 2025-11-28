@@ -17,11 +17,11 @@ RUN go mod download
 COPY ./src ./
 COPY ./scripts ./
 # Airのバイナリをインストール
-RUN go install github.com/go-delve/delve/cmd/dlv@latest && \
-    go install github.com/air-verse/air@latest && \
-    go install github.com/rubenv/sql-migrate/sql-migrate@latest && \
-    go install github.com/stephenafamo/bob/gen/bobgen-mysql@latest && \
-    go install github.com/99designs/gqlgen@latest
+RUN go install github.com/go-delve/delve/cmd/dlv@v1.24.1 && \
+    go install github.com/cosmtrek/air@v1.47.0 && \
+    go install github.com/stephenafamo/bob/gen/bobgen-mysql@v0.40.2 && \
+    go install github.com/99designs/gqlgen@v0.17.83 && \
+    CGO_CFLAGS="-D_LARGEFILE64_SOURCE" go install github.com/rubenv/sql-migrate/...@latest
 
 # コンテナの公開するポートを指定
 EXPOSE 5050

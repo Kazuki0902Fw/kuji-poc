@@ -26,3 +26,11 @@ func (u *userUseCase) ListUsers(ctx context.Context) ([]*model.User, error) {
 	}
 	return users, nil
 }
+
+func (u *userUseCase) GetUserByID(ctx context.Context, userID model.ID) (*model.User, error) {
+	user, err := u.repos.User.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}

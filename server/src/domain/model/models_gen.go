@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+type AuthToken struct {
+	AccessToken           string    `json:"accessToken"`
+	AccessTokenExpiresAt  time.Time `json:"accessTokenExpiresAt"`
+	RefreshToken          string    `json:"refreshToken"`
+	RefreshTokenExpiresAt time.Time `json:"refreshTokenExpiresAt"`
+}
+
 type CheckStockInput struct {
 	IPCategoryID ID  `json:"ipCategoryId"`
 	DrawCount    int `json:"drawCount"`
@@ -50,6 +57,29 @@ type IntellectualPropertyCategory struct {
 	RankGroups     []*IntellectualPropertyRankGroup `json:"rankGroups,omitempty"`
 }
 
+type IntellectualPropertyPurchaseHistory struct {
+	ID                     ID                    `json:"id"`
+	PurchaseTransactionID  ID                    `json:"purchaseTransactionId"`
+	IntellectualPropertyID ID                    `json:"intellectualPropertyId"`
+	CreatedAt              time.Time             `json:"createdAt"`
+	UpdatedAt              time.Time             `json:"updatedAt"`
+	IntellectualProperty   *IntellectualProperty `json:"intellectualProperty"`
+}
+
+type IntellectualPropertyPurchaseTransaction struct {
+	ID                    ID                                     `json:"id"`
+	IPCategoryID          ID                                     `json:"ipCategoryId"`
+	PurchaseQuantity      int                                    `json:"purchaseQuantity"`
+	PurchasePrice         float64                                `json:"purchasePrice"`
+	PaymentMethod         PurchaseTransactionPaymentMethod       `json:"paymentMethod"`
+	ProviderTransactionID *string                                `json:"providerTransactionID,omitempty"`
+	Status                PurchaseTransactionStatus              `json:"status"`
+	PaidAt                *time.Time                             `json:"paidAt,omitempty"`
+	CreatedAt             time.Time                              `json:"createdAt"`
+	UpdatedAt             time.Time                              `json:"updatedAt"`
+	PurchaseHistories     []*IntellectualPropertyPurchaseHistory `json:"purchaseHistories"`
+}
+
 type IntellectualPropertyRankGroup struct {
 	ID           ID                       `json:"id"`
 	IPCategoryID ID                       `json:"ip_category_id"`
@@ -65,16 +95,26 @@ type IntellectualPropertyRankGroup struct {
 	Properties   []*IntellectualProperty  `json:"properties"`
 }
 
+type LoginInput struct {
+	MailAddress string `json:"mailAddress"`
+	Password    string `json:"password"`
+}
+
 type Mutation struct {
 }
 
 type Query struct {
 }
 
+type RefreshAccessTokenInput struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
 type User struct {
 	ID             ID        `json:"id"`
+	MailAddress    string    `json:"mailAddress"`
 	Nickname       string    `json:"nickname"`
-	Password       string    `json:"password"`
+	PasswordHash   string    `json:"passwordHash"`
 	Birthdate      time.Time `json:"birthdate"`
 	Gender         Gender    `json:"gender"`
 	IsAdmin        bool      `json:"isAdmin"`
@@ -196,6 +236,124 @@ func (e *IntellectualPropertyRank) UnmarshalJSON(b []byte) error {
 }
 
 func (e IntellectualPropertyRank) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PurchaseTransactionPaymentMethod string
+
+const (
+	PurchaseTransactionPaymentMethodCreditCard   PurchaseTransactionPaymentMethod = "credit_card"
+	PurchaseTransactionPaymentMethodBankTransfer PurchaseTransactionPaymentMethod = "bank_transfer"
+	PurchaseTransactionPaymentMethodOther        PurchaseTransactionPaymentMethod = "other"
+)
+
+var AllPurchaseTransactionPaymentMethod = []PurchaseTransactionPaymentMethod{
+	PurchaseTransactionPaymentMethodCreditCard,
+	PurchaseTransactionPaymentMethodBankTransfer,
+	PurchaseTransactionPaymentMethodOther,
+}
+
+func (e PurchaseTransactionPaymentMethod) IsValid() bool {
+	switch e {
+	case PurchaseTransactionPaymentMethodCreditCard, PurchaseTransactionPaymentMethodBankTransfer, PurchaseTransactionPaymentMethodOther:
+		return true
+	}
+	return false
+}
+
+func (e PurchaseTransactionPaymentMethod) String() string {
+	return string(e)
+}
+
+func (e *PurchaseTransactionPaymentMethod) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PurchaseTransactionPaymentMethod(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PurchaseTransactionPaymentMethod", str)
+	}
+	return nil
+}
+
+func (e PurchaseTransactionPaymentMethod) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PurchaseTransactionPaymentMethod) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PurchaseTransactionPaymentMethod) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PurchaseTransactionStatus string
+
+const (
+	PurchaseTransactionStatusPaymentPending PurchaseTransactionStatus = "payment_pending"
+	PurchaseTransactionStatusPaymentSuccess PurchaseTransactionStatus = "payment_success"
+	PurchaseTransactionStatusPaymentFailed  PurchaseTransactionStatus = "payment_failed"
+	PurchaseTransactionStatusDrawSuccess    PurchaseTransactionStatus = "draw_success"
+	PurchaseTransactionStatusDrawFailed     PurchaseTransactionStatus = "draw_failed"
+)
+
+var AllPurchaseTransactionStatus = []PurchaseTransactionStatus{
+	PurchaseTransactionStatusPaymentPending,
+	PurchaseTransactionStatusPaymentSuccess,
+	PurchaseTransactionStatusPaymentFailed,
+	PurchaseTransactionStatusDrawSuccess,
+	PurchaseTransactionStatusDrawFailed,
+}
+
+func (e PurchaseTransactionStatus) IsValid() bool {
+	switch e {
+	case PurchaseTransactionStatusPaymentPending, PurchaseTransactionStatusPaymentSuccess, PurchaseTransactionStatusPaymentFailed, PurchaseTransactionStatusDrawSuccess, PurchaseTransactionStatusDrawFailed:
+		return true
+	}
+	return false
+}
+
+func (e PurchaseTransactionStatus) String() string {
+	return string(e)
+}
+
+func (e *PurchaseTransactionStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PurchaseTransactionStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PurchaseTransactionStatus", str)
+	}
+	return nil
+}
+
+func (e PurchaseTransactionStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PurchaseTransactionStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PurchaseTransactionStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

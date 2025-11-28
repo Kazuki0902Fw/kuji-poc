@@ -23,7 +23,7 @@ func BobUserToModelUser(user *models.User) (*model.User, error) {
 	return &model.User{
 		ID:    		      userID,
 		Nickname:       user.Nickname,
-		Password:       user.Password,
+		PasswordHash:   user.PasswordHash,
 		Birthdate:      user.Birthdate,
 		Gender:         gender,
 		IsAdmin:        user.IsAdmin,

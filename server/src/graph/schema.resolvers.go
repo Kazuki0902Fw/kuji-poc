@@ -19,6 +19,16 @@ func (r *intellectualPropertyCategoryResolver) RankGroups(ctx context.Context, o
 	return rankGroups, nil
 }
 
+// IntellectualProperty is the resolver for the intellectualProperty field.
+func (r *intellectualPropertyPurchaseHistoryResolver) IntellectualProperty(ctx context.Context, obj *model.IntellectualPropertyPurchaseHistory) (*model.IntellectualProperty, error) {
+	panic(fmt.Errorf("not implemented: IntellectualProperty - intellectualProperty"))
+}
+
+// PurchaseHistories is the resolver for the purchaseHistories field.
+func (r *intellectualPropertyPurchaseTransactionResolver) PurchaseHistories(ctx context.Context, obj *model.IntellectualPropertyPurchaseTransaction) ([]*model.IntellectualPropertyPurchaseHistory, error) {
+	panic(fmt.Errorf("not implemented: PurchaseHistories - purchaseHistories"))
+}
+
 // Properties is the resolver for the properties field.
 func (r *intellectualPropertyRankGroupResolver) Properties(ctx context.Context, obj *model.IntellectualPropertyRankGroup) ([]*model.IntellectualProperty, error) {
 	properties, err := r.UseCases.ListIntellectualPropertiesByRankGroupID(ctx, obj.ID)
@@ -28,6 +38,37 @@ func (r *intellectualPropertyRankGroupResolver) Properties(ctx context.Context, 
 	return properties, nil
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthToken, error) {
+	token, err := r.UseCases.Login(ctx, input.MailAddress, input.Password)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+// RefreshAccessToken is the resolver for the refreshAccessToken field.
+func (r *mutationResolver) RefreshAccessToken(ctx context.Context, input model.RefreshAccessTokenInput) (*model.AuthToken, error) {
+	token, err := r.UseCases.RefreshAccessToken(ctx, input.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return false, err
+	}
+	err = r.UseCases.Logout(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // DrawIntellectualProperty is the resolver for the drawIntellectualProperty field.
 func (r *mutationResolver) DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error) {
 	results, err := r.UseCases.DrawIntellectualProperty(ctx, input)
@@ -35,6 +76,19 @@ func (r *mutationResolver) DrawIntellectualProperty(ctx context.Context, input m
 		return nil, err
 	}
 	return results, nil
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := r.UseCases.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 // Users is the resolver for the users field.
@@ -57,7 +111,11 @@ func (r *queryResolver) IntellectualPropertyCategories(ctx context.Context) ([]*
 
 // IntellectualPropertyCategory is the resolver for the intellectualPropertyCategory field.
 func (r *queryResolver) IntellectualPropertyCategory(ctx context.Context, ipCategoryID model.ID) (*model.IntellectualPropertyCategory, error) {
-	panic(fmt.Errorf("not implemented: IntellectualPropertyCategory - intellectualPropertyCategory"))
+	category, err := r.UseCases.GetIntellectualPropertyCategoryByID(ctx, ipCategoryID)
+	if err != nil {
+		return nil, err
+	}
+	return category, nil
 }
 
 // CheckStock is the resolver for the checkStock field.
@@ -65,9 +123,24 @@ func (r *queryResolver) CheckStock(ctx context.Context, input model.CheckStockIn
 	panic(fmt.Errorf("not implemented: CheckStock - checkStock"))
 }
 
+// PurchaseTransactions is the resolver for the purchaseTransactions field.
+func (r *queryResolver) PurchaseTransactions(ctx context.Context, userID *model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
+	panic(fmt.Errorf("not implemented: PurchaseTransactions - purchaseTransactions"))
+}
+
 // IntellectualPropertyCategory returns IntellectualPropertyCategoryResolver implementation.
 func (r *Resolver) IntellectualPropertyCategory() IntellectualPropertyCategoryResolver {
 	return &intellectualPropertyCategoryResolver{r}
+}
+
+// IntellectualPropertyPurchaseHistory returns IntellectualPropertyPurchaseHistoryResolver implementation.
+func (r *Resolver) IntellectualPropertyPurchaseHistory() IntellectualPropertyPurchaseHistoryResolver {
+	return &intellectualPropertyPurchaseHistoryResolver{r}
+}
+
+// IntellectualPropertyPurchaseTransaction returns IntellectualPropertyPurchaseTransactionResolver implementation.
+func (r *Resolver) IntellectualPropertyPurchaseTransaction() IntellectualPropertyPurchaseTransactionResolver {
+	return &intellectualPropertyPurchaseTransactionResolver{r}
 }
 
 // IntellectualPropertyRankGroup returns IntellectualPropertyRankGroupResolver implementation.
@@ -82,6 +155,8 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type intellectualPropertyCategoryResolver struct{ *Resolver }
+type intellectualPropertyPurchaseHistoryResolver struct{ *Resolver }
+type intellectualPropertyPurchaseTransactionResolver struct{ *Resolver }
 type intellectualPropertyRankGroupResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

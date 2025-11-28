@@ -5,6 +5,24 @@
 scalar Date
 scalar DateTime
 
+directive @withoutAuth on FIELD_DEFINITION
+
+input LoginInput {
+  mailAddress: String!
+  password: String!
+}
+
+input RefreshAccessTokenInput {
+  refreshToken: String!
+}
+
+type AuthToken {
+  accessToken: String! @withoutAuth
+  accessTokenExpiresAt: DateTime! @withoutAuth
+  refreshToken: String! @withoutAuth
+  refreshTokenExpiresAt: DateTime! @withoutAuth
+}
+
 enum Gender {
   male
   female
@@ -12,8 +30,9 @@ enum Gender {
 
 type User {
   id: ID!
+  mailAddress: String!
   nickname: String!
-  password: String!
+  passwordHash: String!
   birthdate: Date!
   gender: Gender!
   isAdmin: Boolean!
@@ -74,21 +93,51 @@ type IntellectualProperty {
   updatedAt: DateTime!
 }
 
-type IntellectualPropertyTransaction {
+enum PurchaseTransactionPaymentMethod {
+  credit_card
+  bank_transfer
+  other
+}
+
+enum PurchaseTransactionStatus {
+  # 支払い系
+  payment_pending
+  payment_success
+  payment_failed
+  # 抽選系
+  draw_success
+  draw_failed
+}
+
+type IntellectualPropertyPurchaseTransaction {
   id: ID!
-  userId: ID!
+  # ログイン機能が実装されたら追加
+  # userId: ID!
   ipCategoryId: ID!
   purchaseQuantity: Int!
   purchasePrice: Float!
-  paymentMethod: String!
-  providerTransactionId: String!
-  status: String!
-  paidAt: DateTime!
+  paymentMethod: PurchaseTransactionPaymentMethod!
+  providerTransactionID: String
+  status: PurchaseTransactionStatus!
+  paidAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
+
+  purchaseHistories: [IntellectualPropertyPurchaseHistory!]!
+}
+
+type IntellectualPropertyPurchaseHistory {
+  id: ID!
+  purchaseTransactionId: ID!
+  intellectualPropertyId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  intellectualProperty: IntellectualProperty!
 }
 
 type Query {
+  me: User!
   # 登録されているユーザー一覧（管理画面用）
     # 各ユーザーの何を表示させるか
     # - 基本情報
@@ -106,7 +155,7 @@ type Query {
   # ナビゲーションバー周り
   # -------
   # くじ結果一覧（購入履歴）(くじ引きアプリ用)
-  # drawIntellectualPropertyResults: [DrawIntellectualPropertyResult!]!
+  purchaseTransactions(userId: ID): [IntellectualPropertyPurchaseTransaction!]!
   # 基本情報・メルマガ配信設定(くじ引きアプリ用)
   # user(userId: ID!): User!
   # 配送先(くじ引きアプリ用)
@@ -138,6 +187,10 @@ input DrawIntellectualPropertyInput {
 }
 
 type Mutation {
+  # 認証系
+  login(input: LoginInput!): AuthToken! @withoutAuth
+  refreshAccessToken(input: RefreshAccessTokenInput!): AuthToken! @withoutAuth
+  logout: Boolean!
   # くじを引く(くじ引きアプリ用)
   drawIntellectualProperty(input: DrawIntellectualPropertyInput!): [IntellectualProperty!]!
   # カテゴリーを追加(管理画面用)

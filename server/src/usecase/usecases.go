@@ -7,19 +7,20 @@ import (
 )
 
 type UseCases interface {
-	// AuthUseCase
+	AuthUseCase
 	UserUseCase
 	IntellectualPropertyUseCase
 }
 
-// type AuthUseCase interface {
-// 	Login(ctx context.Context, loginID string, password string) (*model.AuthToken, error)
-// 	Logout(ctx context.Context, userID model.ID) error
-// 	RefreshAccessToken(ctx context.Context, refreshToken string) (*model.AuthToken, error)
-// }
+type AuthUseCase interface {
+	Login(ctx context.Context, mailAddress string, password string) (*model.AuthToken, error)
+	Logout(ctx context.Context, userID model.ID) error
+	RefreshAccessToken(ctx context.Context, refreshToken string) (*model.AuthToken, error)
+}
 
 type UserUseCase interface {
 	ListUsers(ctx context.Context) ([]*model.User, error)
+	GetUserByID(ctx context.Context, userID model.ID) (*model.User, error)
 }
 
 type IntellectualPropertyUseCase interface {
@@ -29,6 +30,7 @@ type IntellectualPropertyUseCase interface {
 	ListIntellectualProperties(ctx context.Context) ([]*model.IntellectualProperty, error)
 	ListIntellectualPropertiesByRankGroupID(ctx context.Context, rankGroupID model.ID) ([]*model.IntellectualProperty, error)
 	GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
+	GetIntellectualPropertyCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
 	GetRankGroupByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyRankGroup, error)
 	DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error)
 }
@@ -36,18 +38,18 @@ type IntellectualPropertyUseCase interface {
 var _ UseCases = &useCases{}
 
 type useCases struct {
-	// *authUseCase
+	*authUseCase
 	*userUseCase
 	*intellectualPropertyUseCase
 }
 
 func NewUseCases(
-	// authUseCase *authUseCase,
+	authUseCase *authUseCase,
 	userUseCase *userUseCase,
 	intellectualPropertyUseCase *intellectualPropertyUseCase,
 ) *useCases {
 	return &useCases{
-		// authUseCase:   authUseCase,
+		authUseCase:   authUseCase,
 		userUseCase:                userUseCase,
 		intellectualPropertyUseCase: intellectualPropertyUseCase,
 	}

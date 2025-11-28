@@ -41,6 +41,8 @@ type Config struct {
 
 type ResolverRoot interface {
 	IntellectualPropertyCategory() IntellectualPropertyCategoryResolver
+	IntellectualPropertyPurchaseHistory() IntellectualPropertyPurchaseHistoryResolver
+	IntellectualPropertyPurchaseTransaction() IntellectualPropertyPurchaseTransactionResolver
 	IntellectualPropertyRankGroup() IntellectualPropertyRankGroupResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -50,6 +52,13 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AuthToken struct {
+		AccessToken           func(childComplexity int) int
+		AccessTokenExpiresAt  func(childComplexity int) int
+		RefreshToken          func(childComplexity int) int
+		RefreshTokenExpiresAt func(childComplexity int) int
+	}
+
 	CheckStockResult struct {
 		IsStockAvailable func(childComplexity int) int
 	}
@@ -80,6 +89,29 @@ type ComplexityRoot struct {
 		UpdatedAt      func(childComplexity int) int
 	}
 
+	IntellectualPropertyPurchaseHistory struct {
+		CreatedAt              func(childComplexity int) int
+		ID                     func(childComplexity int) int
+		IntellectualProperty   func(childComplexity int) int
+		IntellectualPropertyID func(childComplexity int) int
+		PurchaseTransactionID  func(childComplexity int) int
+		UpdatedAt              func(childComplexity int) int
+	}
+
+	IntellectualPropertyPurchaseTransaction struct {
+		CreatedAt             func(childComplexity int) int
+		ID                    func(childComplexity int) int
+		IPCategoryID          func(childComplexity int) int
+		PaidAt                func(childComplexity int) int
+		PaymentMethod         func(childComplexity int) int
+		ProviderTransactionID func(childComplexity int) int
+		PurchaseHistories     func(childComplexity int) int
+		PurchasePrice         func(childComplexity int) int
+		PurchaseQuantity      func(childComplexity int) int
+		Status                func(childComplexity int) int
+		UpdatedAt             func(childComplexity int) int
+	}
+
 	IntellectualPropertyRankGroup struct {
 		Comments     func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
@@ -97,12 +129,17 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		DrawIntellectualProperty func(childComplexity int, input model.DrawIntellectualPropertyInput) int
+		Login                    func(childComplexity int, input model.LoginInput) int
+		Logout                   func(childComplexity int) int
+		RefreshAccessToken       func(childComplexity int, input model.RefreshAccessTokenInput) int
 	}
 
 	Query struct {
 		CheckStock                     func(childComplexity int, input model.CheckStockInput) int
 		IntellectualPropertyCategories func(childComplexity int) int
 		IntellectualPropertyCategory   func(childComplexity int, ipCategoryID model.ID) int
+		Me                             func(childComplexity int) int
+		PurchaseTransactions           func(childComplexity int, userID *model.ID) int
 		Users                          func(childComplexity int) int
 	}
 
@@ -113,8 +150,9 @@ type ComplexityRoot struct {
 		ID             func(childComplexity int) int
 		IsAdmin        func(childComplexity int) int
 		IsMailmagazine func(childComplexity int) int
+		MailAddress    func(childComplexity int) int
 		Nickname       func(childComplexity int) int
-		Password       func(childComplexity int) int
+		PasswordHash   func(childComplexity int) int
 		UpdatedAt      func(childComplexity int) int
 	}
 }
@@ -122,17 +160,28 @@ type ComplexityRoot struct {
 type IntellectualPropertyCategoryResolver interface {
 	RankGroups(ctx context.Context, obj *model.IntellectualPropertyCategory) ([]*model.IntellectualPropertyRankGroup, error)
 }
+type IntellectualPropertyPurchaseHistoryResolver interface {
+	IntellectualProperty(ctx context.Context, obj *model.IntellectualPropertyPurchaseHistory) (*model.IntellectualProperty, error)
+}
+type IntellectualPropertyPurchaseTransactionResolver interface {
+	PurchaseHistories(ctx context.Context, obj *model.IntellectualPropertyPurchaseTransaction) ([]*model.IntellectualPropertyPurchaseHistory, error)
+}
 type IntellectualPropertyRankGroupResolver interface {
 	Properties(ctx context.Context, obj *model.IntellectualPropertyRankGroup) ([]*model.IntellectualProperty, error)
 }
 type MutationResolver interface {
+	Login(ctx context.Context, input model.LoginInput) (*model.AuthToken, error)
+	RefreshAccessToken(ctx context.Context, input model.RefreshAccessTokenInput) (*model.AuthToken, error)
+	Logout(ctx context.Context) (bool, error)
 	DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error)
 }
 type QueryResolver interface {
+	Me(ctx context.Context) (*model.User, error)
 	Users(ctx context.Context) ([]*model.User, error)
 	IntellectualPropertyCategories(ctx context.Context) ([]*model.IntellectualPropertyCategory, error)
 	IntellectualPropertyCategory(ctx context.Context, ipCategoryID model.ID) (*model.IntellectualPropertyCategory, error)
 	CheckStock(ctx context.Context, input model.CheckStockInput) (*model.CheckStockResult, error)
+	PurchaseTransactions(ctx context.Context, userID *model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error)
 }
 
 type executableSchema struct {
@@ -153,6 +202,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AuthToken.accessToken":
+		if e.complexity.AuthToken.AccessToken == nil {
+			break
+		}
+
+		return e.complexity.AuthToken.AccessToken(childComplexity), true
+	case "AuthToken.accessTokenExpiresAt":
+		if e.complexity.AuthToken.AccessTokenExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.AuthToken.AccessTokenExpiresAt(childComplexity), true
+	case "AuthToken.refreshToken":
+		if e.complexity.AuthToken.RefreshToken == nil {
+			break
+		}
+
+		return e.complexity.AuthToken.RefreshToken(childComplexity), true
+	case "AuthToken.refreshTokenExpiresAt":
+		if e.complexity.AuthToken.RefreshTokenExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.AuthToken.RefreshTokenExpiresAt(childComplexity), true
 
 	case "CheckStockResult.isStockAvailable":
 		if e.complexity.CheckStockResult.IsStockAvailable == nil {
@@ -283,6 +357,110 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.IntellectualPropertyCategory.UpdatedAt(childComplexity), true
 
+	case "IntellectualPropertyPurchaseHistory.createdAt":
+		if e.complexity.IntellectualPropertyPurchaseHistory.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.CreatedAt(childComplexity), true
+	case "IntellectualPropertyPurchaseHistory.id":
+		if e.complexity.IntellectualPropertyPurchaseHistory.ID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.ID(childComplexity), true
+	case "IntellectualPropertyPurchaseHistory.intellectualProperty":
+		if e.complexity.IntellectualPropertyPurchaseHistory.IntellectualProperty == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.IntellectualProperty(childComplexity), true
+	case "IntellectualPropertyPurchaseHistory.intellectualPropertyId":
+		if e.complexity.IntellectualPropertyPurchaseHistory.IntellectualPropertyID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.IntellectualPropertyID(childComplexity), true
+	case "IntellectualPropertyPurchaseHistory.purchaseTransactionId":
+		if e.complexity.IntellectualPropertyPurchaseHistory.PurchaseTransactionID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.PurchaseTransactionID(childComplexity), true
+	case "IntellectualPropertyPurchaseHistory.updatedAt":
+		if e.complexity.IntellectualPropertyPurchaseHistory.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseHistory.UpdatedAt(childComplexity), true
+
+	case "IntellectualPropertyPurchaseTransaction.createdAt":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.CreatedAt(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.id":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.ID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.ID(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.ipCategoryId":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.IPCategoryID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.IPCategoryID(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.paidAt":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.PaidAt == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.PaidAt(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.paymentMethod":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.PaymentMethod == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.PaymentMethod(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.providerTransactionID":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.ProviderTransactionID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.ProviderTransactionID(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.purchaseHistories":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.PurchaseHistories == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.PurchaseHistories(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.purchasePrice":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.PurchasePrice == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.PurchasePrice(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.purchaseQuantity":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.PurchaseQuantity == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.PurchaseQuantity(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.status":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.Status == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.Status(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.updatedAt":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.UpdatedAt(childComplexity), true
+
 	case "IntellectualPropertyRankGroup.comments":
 		if e.complexity.IntellectualPropertyRankGroup.Comments == nil {
 			break
@@ -367,6 +545,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DrawIntellectualProperty(childComplexity, args["input"].(model.DrawIntellectualPropertyInput)), true
+	case "Mutation.login":
+		if e.complexity.Mutation.Login == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_login_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Login(childComplexity, args["input"].(model.LoginInput)), true
+	case "Mutation.logout":
+		if e.complexity.Mutation.Logout == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Logout(childComplexity), true
+	case "Mutation.refreshAccessToken":
+		if e.complexity.Mutation.RefreshAccessToken == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_refreshAccessToken_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RefreshAccessToken(childComplexity, args["input"].(model.RefreshAccessTokenInput)), true
 
 	case "Query.checkStock":
 		if e.complexity.Query.CheckStock == nil {
@@ -396,6 +602,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.IntellectualPropertyCategory(childComplexity, args["ipCategoryId"].(model.ID)), true
+	case "Query.me":
+		if e.complexity.Query.Me == nil {
+			break
+		}
+
+		return e.complexity.Query.Me(childComplexity), true
+	case "Query.purchaseTransactions":
+		if e.complexity.Query.PurchaseTransactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_purchaseTransactions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PurchaseTransactions(childComplexity, args["userId"].(*model.ID)), true
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -439,18 +662,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.IsMailmagazine(childComplexity), true
+	case "User.mailAddress":
+		if e.complexity.User.MailAddress == nil {
+			break
+		}
+
+		return e.complexity.User.MailAddress(childComplexity), true
 	case "User.nickname":
 		if e.complexity.User.Nickname == nil {
 			break
 		}
 
 		return e.complexity.User.Nickname(childComplexity), true
-	case "User.password":
-		if e.complexity.User.Password == nil {
+	case "User.passwordHash":
+		if e.complexity.User.PasswordHash == nil {
 			break
 		}
 
-		return e.complexity.User.Password(childComplexity), true
+		return e.complexity.User.PasswordHash(childComplexity), true
 	case "User.updatedAt":
 		if e.complexity.User.UpdatedAt == nil {
 			break
@@ -468,6 +697,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputCheckStockInput,
 		ec.unmarshalInputDrawIntellectualPropertyInput,
+		ec.unmarshalInputLoginInput,
+		ec.unmarshalInputRefreshAccessTokenInput,
 	)
 	first := true
 
@@ -595,6 +826,28 @@ func (ec *executionContext) field_Mutation_drawIntellectualProperty_args(ctx con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLoginInput2kujicoleᚋdomainᚋmodelᚐLoginInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_refreshAccessToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRefreshAccessTokenInput2kujicoleᚋdomainᚋmodelᚐRefreshAccessTokenInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -625,6 +878,17 @@ func (ec *executionContext) field_Query_intellectualPropertyCategory_args(ctx co
 		return nil, err
 	}
 	args["ipCategoryId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_purchaseTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -679,6 +943,122 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AuthToken_accessToken(ctx context.Context, field graphql.CollectedField, obj *model.AuthToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthToken_accessToken,
+		func(ctx context.Context) (any, error) {
+			return obj.AccessToken, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthToken_accessToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthToken_accessTokenExpiresAt(ctx context.Context, field graphql.CollectedField, obj *model.AuthToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthToken_accessTokenExpiresAt,
+		func(ctx context.Context) (any, error) {
+			return obj.AccessTokenExpiresAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthToken_accessTokenExpiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthToken_refreshToken(ctx context.Context, field graphql.CollectedField, obj *model.AuthToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthToken_refreshToken,
+		func(ctx context.Context) (any, error) {
+			return obj.RefreshToken, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthToken_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AuthToken_refreshTokenExpiresAt(ctx context.Context, field graphql.CollectedField, obj *model.AuthToken) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AuthToken_refreshTokenExpiresAt,
+		func(ctx context.Context) (any, error) {
+			return obj.RefreshTokenExpiresAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AuthToken_refreshTokenExpiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _CheckStockResult_isStockAvailable(ctx context.Context, field graphql.CollectedField, obj *model.CheckStockResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -1315,6 +1695,531 @@ func (ec *executionContext) fieldContext_IntellectualPropertyCategory_rankGroups
 	return fc, nil
 }
 
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_id(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_purchaseTransactionId(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_purchaseTransactionId,
+		func(ctx context.Context) (any, error) {
+			return obj.PurchaseTransactionID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_purchaseTransactionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_intellectualPropertyId(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_intellectualPropertyId,
+		func(ctx context.Context) (any, error) {
+			return obj.IntellectualPropertyID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_intellectualPropertyId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory_intellectualProperty(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseHistory) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseHistory_intellectualProperty,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.IntellectualPropertyPurchaseHistory().IntellectualProperty(ctx, obj)
+		},
+		nil,
+		ec.marshalNIntellectualProperty2ᚖkujicoleᚋdomainᚋmodelᚐIntellectualProperty,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseHistory_intellectualProperty(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseHistory",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IntellectualProperty_id(ctx, field)
+			case "ipRankGroupId":
+				return ec.fieldContext_IntellectualProperty_ipRankGroupId(ctx, field)
+			case "name":
+				return ec.fieldContext_IntellectualProperty_name(ctx, field)
+			case "stock":
+				return ec.fieldContext_IntellectualProperty_stock(ctx, field)
+			case "isHidden":
+				return ec.fieldContext_IntellectualProperty_isHidden(ctx, field)
+			case "imgUrl":
+				return ec.fieldContext_IntellectualProperty_imgUrl(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_IntellectualProperty_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_IntellectualProperty_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IntellectualProperty", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_id(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_ipCategoryId(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_ipCategoryId,
+		func(ctx context.Context) (any, error) {
+			return obj.IPCategoryID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_ipCategoryId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_purchaseQuantity(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchaseQuantity,
+		func(ctx context.Context) (any, error) {
+			return obj.PurchaseQuantity, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_purchaseQuantity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_purchasePrice(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchasePrice,
+		func(ctx context.Context) (any, error) {
+			return obj.PurchasePrice, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_purchasePrice(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_paymentMethod(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_paymentMethod,
+		func(ctx context.Context) (any, error) {
+			return obj.PaymentMethod, nil
+		},
+		nil,
+		ec.marshalNPurchaseTransactionPaymentMethod2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionPaymentMethod,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_paymentMethod(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type PurchaseTransactionPaymentMethod does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_providerTransactionID(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_providerTransactionID,
+		func(ctx context.Context) (any, error) {
+			return obj.ProviderTransactionID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_providerTransactionID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_status(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNPurchaseTransactionStatus2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type PurchaseTransactionStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_paidAt(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_paidAt,
+		func(ctx context.Context) (any, error) {
+			return obj.PaidAt, nil
+		},
+		nil,
+		ec.marshalODateTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_paidAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNDateTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DateTime does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_purchaseHistories(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchaseHistories,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.IntellectualPropertyPurchaseTransaction().PurchaseHistories(ctx, obj)
+		},
+		nil,
+		ec.marshalNIntellectualPropertyPurchaseHistory2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseHistoryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_purchaseHistories(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_id(ctx, field)
+			case "purchaseTransactionId":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_purchaseTransactionId(ctx, field)
+			case "intellectualPropertyId":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_intellectualPropertyId(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_updatedAt(ctx, field)
+			case "intellectualProperty":
+				return ec.fieldContext_IntellectualPropertyPurchaseHistory_intellectualProperty(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IntellectualPropertyPurchaseHistory", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _IntellectualPropertyRankGroup_id(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyRankGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1681,6 +2586,137 @@ func (ec *executionContext) fieldContext_IntellectualPropertyRankGroup_propertie
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_login,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().Login(ctx, fc.Args["input"].(model.LoginInput))
+		},
+		nil,
+		ec.marshalNAuthToken2ᚖkujicoleᚋdomainᚋmodelᚐAuthToken,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_login(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "accessToken":
+				return ec.fieldContext_AuthToken_accessToken(ctx, field)
+			case "accessTokenExpiresAt":
+				return ec.fieldContext_AuthToken_accessTokenExpiresAt(ctx, field)
+			case "refreshToken":
+				return ec.fieldContext_AuthToken_refreshToken(ctx, field)
+			case "refreshTokenExpiresAt":
+				return ec.fieldContext_AuthToken_refreshTokenExpiresAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthToken", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_login_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_refreshAccessToken(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_refreshAccessToken,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RefreshAccessToken(ctx, fc.Args["input"].(model.RefreshAccessTokenInput))
+		},
+		nil,
+		ec.marshalNAuthToken2ᚖkujicoleᚋdomainᚋmodelᚐAuthToken,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_refreshAccessToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "accessToken":
+				return ec.fieldContext_AuthToken_accessToken(ctx, field)
+			case "accessTokenExpiresAt":
+				return ec.fieldContext_AuthToken_accessTokenExpiresAt(ctx, field)
+			case "refreshToken":
+				return ec.fieldContext_AuthToken_refreshToken(ctx, field)
+			case "refreshTokenExpiresAt":
+				return ec.fieldContext_AuthToken_refreshTokenExpiresAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthToken", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_refreshAccessToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_logout,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_drawIntellectualProperty(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1740,6 +2776,57 @@ func (ec *executionContext) fieldContext_Mutation_drawIntellectualProperty(ctx c
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_me,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Me(ctx)
+		},
+		nil,
+		ec.marshalNUser2ᚖkujicoleᚋdomainᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "mailAddress":
+				return ec.fieldContext_User_mailAddress(ctx, field)
+			case "nickname":
+				return ec.fieldContext_User_nickname(ctx, field)
+			case "passwordHash":
+				return ec.fieldContext_User_passwordHash(ctx, field)
+			case "birthdate":
+				return ec.fieldContext_User_birthdate(ctx, field)
+			case "gender":
+				return ec.fieldContext_User_gender(ctx, field)
+			case "isAdmin":
+				return ec.fieldContext_User_isAdmin(ctx, field)
+			case "isMailmagazine":
+				return ec.fieldContext_User_isMailmagazine(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1766,10 +2853,12 @@ func (ec *executionContext) fieldContext_Query_users(_ context.Context, field gr
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
+			case "mailAddress":
+				return ec.fieldContext_User_mailAddress(ctx, field)
 			case "nickname":
 				return ec.fieldContext_User_nickname(ctx, field)
-			case "password":
-				return ec.fieldContext_User_password(ctx, field)
+			case "passwordHash":
+				return ec.fieldContext_User_passwordHash(ctx, field)
 			case "birthdate":
 				return ec.fieldContext_User_birthdate(ctx, field)
 			case "gender":
@@ -1956,6 +3045,71 @@ func (ec *executionContext) fieldContext_Query_checkStock(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_purchaseTransactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_purchaseTransactions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PurchaseTransactions(ctx, fc.Args["userId"].(*model.ID))
+		},
+		nil,
+		ec.marshalNIntellectualPropertyPurchaseTransaction2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseTransactionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_purchaseTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_id(ctx, field)
+			case "ipCategoryId":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_ipCategoryId(ctx, field)
+			case "purchaseQuantity":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchaseQuantity(ctx, field)
+			case "purchasePrice":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchasePrice(ctx, field)
+			case "paymentMethod":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_paymentMethod(ctx, field)
+			case "providerTransactionID":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_providerTransactionID(ctx, field)
+			case "status":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_status(ctx, field)
+			case "paidAt":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_paidAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_updatedAt(ctx, field)
+			case "purchaseHistories":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_purchaseHistories(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type IntellectualPropertyPurchaseTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_purchaseTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2093,6 +3247,35 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
+func (ec *executionContext) _User_mailAddress(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_mailAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.MailAddress, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_mailAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_nickname(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2122,14 +3305,14 @@ func (ec *executionContext) fieldContext_User_nickname(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_passwordHash(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_User_password,
+		ec.fieldContext_User_passwordHash,
 		func(ctx context.Context) (any, error) {
-			return obj.Password, nil
+			return obj.PasswordHash, nil
 		},
 		nil,
 		ec.marshalNString2string,
@@ -2138,7 +3321,7 @@ func (ec *executionContext) _User_password(ctx context.Context, field graphql.Co
 	)
 }
 
-func (ec *executionContext) fieldContext_User_password(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_User_passwordHash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
@@ -3839,6 +5022,67 @@ func (ec *executionContext) unmarshalInputDrawIntellectualPropertyInput(ctx cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputLoginInput(ctx context.Context, obj any) (model.LoginInput, error) {
+	var it model.LoginInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"mailAddress", "password"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "mailAddress":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mailAddress"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MailAddress = data
+		case "password":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRefreshAccessTokenInput(ctx context.Context, obj any) (model.RefreshAccessTokenInput, error) {
+	var it model.RefreshAccessTokenInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"refreshToken"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "refreshToken":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refreshToken"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RefreshToken = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3846,6 +5090,60 @@ func (ec *executionContext) unmarshalInputDrawIntellectualPropertyInput(ctx cont
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var authTokenImplementors = []string{"AuthToken"}
+
+func (ec *executionContext) _AuthToken(ctx context.Context, sel ast.SelectionSet, obj *model.AuthToken) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, authTokenImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AuthToken")
+		case "accessToken":
+			out.Values[i] = ec._AuthToken_accessToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "accessTokenExpiresAt":
+			out.Values[i] = ec._AuthToken_accessTokenExpiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshToken":
+			out.Values[i] = ec._AuthToken_refreshToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshTokenExpiresAt":
+			out.Values[i] = ec._AuthToken_refreshTokenExpiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
 
 var checkStockResultImplementors = []string{"CheckStockResult"}
 
@@ -4073,6 +5371,215 @@ func (ec *executionContext) _IntellectualPropertyCategory(ctx context.Context, s
 	return out
 }
 
+var intellectualPropertyPurchaseHistoryImplementors = []string{"IntellectualPropertyPurchaseHistory"}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseHistory(ctx context.Context, sel ast.SelectionSet, obj *model.IntellectualPropertyPurchaseHistory) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, intellectualPropertyPurchaseHistoryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IntellectualPropertyPurchaseHistory")
+		case "id":
+			out.Values[i] = ec._IntellectualPropertyPurchaseHistory_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "purchaseTransactionId":
+			out.Values[i] = ec._IntellectualPropertyPurchaseHistory_purchaseTransactionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "intellectualPropertyId":
+			out.Values[i] = ec._IntellectualPropertyPurchaseHistory_intellectualPropertyId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._IntellectualPropertyPurchaseHistory_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._IntellectualPropertyPurchaseHistory_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "intellectualProperty":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._IntellectualPropertyPurchaseHistory_intellectualProperty(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var intellectualPropertyPurchaseTransactionImplementors = []string{"IntellectualPropertyPurchaseTransaction"}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction(ctx context.Context, sel ast.SelectionSet, obj *model.IntellectualPropertyPurchaseTransaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, intellectualPropertyPurchaseTransactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("IntellectualPropertyPurchaseTransaction")
+		case "id":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "ipCategoryId":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_ipCategoryId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "purchaseQuantity":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_purchaseQuantity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "purchasePrice":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_purchasePrice(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "paymentMethod":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_paymentMethod(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "providerTransactionID":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_providerTransactionID(ctx, field, obj)
+		case "status":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "paidAt":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_paidAt(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "purchaseHistories":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._IntellectualPropertyPurchaseTransaction_purchaseHistories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var intellectualPropertyRankGroupImplementors = []string{"IntellectualPropertyRankGroup"}
 
 func (ec *executionContext) _IntellectualPropertyRankGroup(ctx context.Context, sel ast.SelectionSet, obj *model.IntellectualPropertyRankGroup) graphql.Marshaler {
@@ -4208,6 +5715,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "login":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_login(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refreshAccessToken":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_refreshAccessToken(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "drawIntellectualProperty":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_drawIntellectualProperty(ctx, field)
@@ -4257,6 +5785,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "me":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_me(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "users":
 			field := field
 
@@ -4345,6 +5895,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "purchaseTransactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_purchaseTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -4392,13 +5964,18 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "mailAddress":
+			out.Values[i] = ec._User_mailAddress(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "nickname":
 			out.Values[i] = ec._User_nickname(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "password":
-			out.Values[i] = ec._User_password(ctx, field, obj)
+		case "passwordHash":
+			out.Values[i] = ec._User_passwordHash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4790,6 +6367,20 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAuthToken2kujicoleᚋdomainᚋmodelᚐAuthToken(ctx context.Context, sel ast.SelectionSet, v model.AuthToken) graphql.Marshaler {
+	return ec._AuthToken(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAuthToken2ᚖkujicoleᚋdomainᚋmodelᚐAuthToken(ctx context.Context, sel ast.SelectionSet, v *model.AuthToken) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AuthToken(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4914,6 +6505,10 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNIntellectualProperty2kujicoleᚋdomainᚋmodelᚐIntellectualProperty(ctx context.Context, sel ast.SelectionSet, v model.IntellectualProperty) graphql.Marshaler {
+	return ec._IntellectualProperty(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNIntellectualProperty2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.IntellectualProperty) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -5026,6 +6621,114 @@ func (ec *executionContext) marshalNIntellectualPropertyCategory2ᚖkujicoleᚋd
 	return ec._IntellectualPropertyCategory(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNIntellectualPropertyPurchaseHistory2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseHistoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.IntellectualPropertyPurchaseHistory) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNIntellectualPropertyPurchaseHistory2ᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseHistory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNIntellectualPropertyPurchaseHistory2ᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseHistory(ctx context.Context, sel ast.SelectionSet, v *model.IntellectualPropertyPurchaseHistory) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._IntellectualPropertyPurchaseHistory(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNIntellectualPropertyPurchaseTransaction2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.IntellectualPropertyPurchaseTransaction) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNIntellectualPropertyPurchaseTransaction2ᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseTransaction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNIntellectualPropertyPurchaseTransaction2ᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseTransaction(ctx context.Context, sel ast.SelectionSet, v *model.IntellectualPropertyPurchaseTransaction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._IntellectualPropertyPurchaseTransaction(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNIntellectualPropertyRank2kujicoleᚋdomainᚋmodelᚐIntellectualPropertyRank(ctx context.Context, v any) (model.IntellectualPropertyRank, error) {
 	var res model.IntellectualPropertyRank
 	err := res.UnmarshalGQL(v)
@@ -5046,6 +6749,36 @@ func (ec *executionContext) marshalNIntellectualPropertyRankGroup2ᚖkujicoleᚋ
 	return ec._IntellectualPropertyRankGroup(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNLoginInput2kujicoleᚋdomainᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
+	res, err := ec.unmarshalInputLoginInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNPurchaseTransactionPaymentMethod2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionPaymentMethod(ctx context.Context, v any) (model.PurchaseTransactionPaymentMethod, error) {
+	var res model.PurchaseTransactionPaymentMethod
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPurchaseTransactionPaymentMethod2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionPaymentMethod(ctx context.Context, sel ast.SelectionSet, v model.PurchaseTransactionPaymentMethod) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNPurchaseTransactionStatus2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionStatus(ctx context.Context, v any) (model.PurchaseTransactionStatus, error) {
+	var res model.PurchaseTransactionStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPurchaseTransactionStatus2kujicoleᚋdomainᚋmodelᚐPurchaseTransactionStatus(ctx context.Context, sel ast.SelectionSet, v model.PurchaseTransactionStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNRefreshAccessTokenInput2kujicoleᚋdomainᚋmodelᚐRefreshAccessTokenInput(ctx context.Context, v any) (model.RefreshAccessTokenInput, error) {
+	res, err := ec.unmarshalInputRefreshAccessTokenInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5060,6 +6793,10 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUser2kujicoleᚋdomainᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+	return ec._User(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNUser2ᚕᚖkujicoleᚋdomainᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
@@ -5397,6 +7134,40 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalODateTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID(ctx context.Context, v any) (*model.ID, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ID)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID(ctx context.Context, sel ast.SelectionSet, v *model.ID) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOIntellectualPropertyRankGroup2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyRankGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.IntellectualPropertyRankGroup) graphql.Marshaler {

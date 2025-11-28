@@ -15,7 +15,8 @@ import (
 	"kujicole/usecase"
 	domainErr "kujicole/domain/error"
 	"kujicole/domain/repository"
-	// customEchoMiddleware "kujicole/infra/echo/middleware"
+	customEchoMiddleware "kujicole/infra/echo/middleware"
+	"kujicole/infra/authtoken"
 	// gqlCustomExtension "kujicole/infra/gql/extension"
 	"kujicole/infra/mysql"
 
@@ -88,10 +89,10 @@ func main() {
 	// --------------------------------------------------
 	// Setup services
 	// --------------------------------------------------
-	// authTokenService, err := authtoken.NewAuthTokenService(conf.JWTAuth.Base64PrivateKey, conf.JWTAuth.Base64PublicKey, conn)
-	// if err != nil {
-	// 	logger.Fatalf("failed to create auth token service. error: %+v", err)
-	// }
+	authTokenService, err := authtoken.NewAuthTokenService(conf.JWTAuth.Base64PrivateKey, conf.JWTAuth.Base64PublicKey, conn)
+	if err != nil {
+		logger.Fatalf("failed to create auth token service. error: %+v", err)
+	}
 
 	// fileService, err := s3.NewFileService(s3.S3FileServiceConfig{
 	// 	BucketName:   conf.AWS.S3BucketName,
@@ -104,11 +105,11 @@ func main() {
 	// --------------------------------------------------
 	// Setup use cases
 	// --------------------------------------------------
-	// authUseCase := usecase.NewAuthUseCase(repos, authTokenService)
+	authUseCase := usecase.NewAuthUseCase(repos, authTokenService)
 	userUseCase := usecase.NewUserUseCase(repos)
 	intellectualPropertyUseCase := usecase.NewIntellectualPropertyUseCase(repos)
 	useCases := usecase.NewUseCases(
-		// authUseCase,
+		authUseCase,
 		userUseCase,
 		intellectualPropertyUseCase,
 	)
@@ -174,9 +175,9 @@ func main() {
 	e.Use(
 		echomiddleware.Logger(),
 		echomiddleware.CORS(),
-		// (&customEchoMiddleware.AddUserIDMiddleware{
-		// 	Service: authTokenService,
-		// }).MiddlewareFunc(),
+		(&customEchoMiddleware.AddUserIDMiddleware{
+			Service: authTokenService,
+		}).MiddlewareFunc(),
 	)
 
 	// health check

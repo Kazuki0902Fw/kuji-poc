@@ -89,4 +89,18 @@ models:
       properties:
         resolver: true
 
+  IntellectualPropertyPurchaseTransaction:
+    fields:
+      purchaseHistories:
+        resolver: true
 
+  IntellectualPropertyPurchaseHistory:
+    fields:
+      intellectualProperty:
+        resolver: true
+
+directives:
+  withoutAuth:
+    skip_runtime: true
+  # isAdmin:
+  #   skip_runtime: true

@@ -54,8 +54,9 @@ func ReadUsers(
 
 		users = append(users, &models.UserSetter{
 			ID:             omit.From(userID),
+			MailAddress:    omit.From(record[0]),
 			Nickname:       omit.From(record[1]),
-			Password:       omit.From(hash),
+			PasswordHash:   omit.From(hash),
 			Birthdate:      omit.From(birthdate),
 			Gender:         omit.From(gender),
 			IsAdmin:        omit.From(isAdmin),

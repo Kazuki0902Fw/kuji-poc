@@ -145,3 +145,5 @@ func BobIntellectualPropertySliceToModelPropertySlice(properties []*models.Intel
 	return util.MapWithErr(properties, BobIntellectualPropertyToModelProperty)
 }
 
+
+

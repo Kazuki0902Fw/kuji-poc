@@ -14,8 +14,8 @@ type IntellectualPropertyRepository interface {
 	ListPropertiesByRankGroupID(ctx context.Context, rankGroupID model.ID) ([]*model.IntellectualProperty, error)
 	GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
 	GetRankGroupByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyRankGroup, error)
-	GetIntellectualPropertyAggregateByCategoryID(ctx context.Context, categoryID model.ID) (*model.IPIntellectualPropertyAggregate, error)
-	GetIntellectualPropertyAggregateByCategoryIDWithPessimisticLock(ctx context.Context, categoryID model.ID) (*model.IPIntellectualPropertyAggregate, error)
-	UpdateIntellectualPropertiesStock(ctx context.Context, drawnProperties []*model.IntellectualProperty) error
+	GetIPCategoryAggregateByCategoryID(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error)
+	GetIPCategoryAggregateByCategoryIDWithPessimisticLock(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error)
+	UpdateIPPropertiesStock(ctx context.Context, drawnProperties []*model.IntellectualProperty) error
 }
 

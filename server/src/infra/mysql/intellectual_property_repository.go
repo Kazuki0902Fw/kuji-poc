@@ -96,7 +96,7 @@ func (r *intellectualPropertyRepository) GetRankGroupByID(ctx context.Context, i
 	return convert.BobIntellectualPropertyRankGroupToModelRankGroup(rankGroup)
 }
 
-func (r *intellectualPropertyRepository) GetIntellectualPropertyAggregateByCategoryID(ctx context.Context, categoryID model.ID) (*model.IPIntellectualPropertyAggregate, error) {
+func (r *intellectualPropertyRepository) GetIPCategoryAggregateByCategoryID(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error) {
 	// カテゴリーを取得
 	category, err := r.GetCategoryByID(ctx, categoryID)
 	if err != nil {
@@ -110,21 +110,35 @@ func (r *intellectualPropertyRepository) GetIntellectualPropertyAggregateByCateg
 	}
 
 	// 各ランクグループに紐づくプロパティを取得
+	// N+1問題を回避するため、全てのRankGroupIDをIN句で一度に取得
 	var allProperties []*model.IntellectualProperty
-	for _, rankGroup := range rankGroups {
-		properties, err := r.ListPropertiesByRankGroupID(ctx, rankGroup.ID)
+	if len(rankGroups) > 0 {
+		// 全てのRankGroupIDを収集
+		rankGroupIDArgs := make([]bob.Expression, len(rankGroups))
+		for i, rankGroup := range rankGroups {
+			rankGroupIDArgs[i] = mysql.Arg(rankGroup.ID.String())
+		}
+		rankGroupIDExpr := mysql.Group(rankGroupIDArgs...)
+		
+		// 一度のクエリで全てのプロパティを取得
+		propertiesBob, err := models.IntellectualProperties.Query(
+			sm.Where(mysql.Group(models.IntellectualProperties.Columns.IPRankGroupID).OP("IN", rankGroupIDExpr)),
+		).All(ctx, r.db)
 		if err != nil {
 			return nil, err
 		}
-		allProperties = append(allProperties, properties...)
+		allProperties, err = convert.BobIntellectualPropertySliceToModelPropertySlice(propertiesBob)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// 集約オブジェクトを作成
-	aggregate := model.NewIPIntellectualPropertyAggregate(category, rankGroups, allProperties)
+	aggregate := model.NewIPCategoryAggregate(category, rankGroups, allProperties)
 	return aggregate, nil
 }
 
-func (r *intellectualPropertyRepository) GetIntellectualPropertyAggregateByCategoryIDWithPessimisticLock(ctx context.Context, categoryID model.ID) (*model.IPIntellectualPropertyAggregate, error) {
+func (r *intellectualPropertyRepository) GetIPCategoryAggregateByCategoryIDWithPessimisticLock(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error) {
 	// カテゴリーを取得（読み取り専用、更新しないためロック不要）
 	modelCategory, err := r.GetCategoryByID(ctx, categoryID)
 	if err != nil {
@@ -138,28 +152,36 @@ func (r *intellectualPropertyRepository) GetIntellectualPropertyAggregateByCateg
 	}
 
 	// 各ランクグループに紐づくプロパティを取得（FOR UPDATEでロック、Drawメソッドでstockを更新するため）
+	// N+1問題を回避するため、全てのRankGroupIDをIN句で一度に取得
 	var allProperties []*model.IntellectualProperty
-	for _, rankGroup := range rankGroups {
+	if len(rankGroups) > 0 {
+		// 全てのRankGroupIDを収集
+		rankGroupIDArgs := make([]bob.Expression, len(rankGroups))
+		for i, rankGroup := range rankGroups {
+			rankGroupIDArgs[i] = mysql.Arg(rankGroup.ID.String())
+		}
+		rankGroupIDExpr := mysql.Group(rankGroupIDArgs...)
+		
+		// 一度のクエリで全てのプロパティを取得
 		propertiesBob, err := models.IntellectualProperties.Query(
-			sm.Where(models.IntellectualProperties.Columns.IPRankGroupID.EQ(mysql.Arg(rankGroup.ID.String()))),
+			sm.Where(mysql.Group(models.IntellectualProperties.Columns.IPRankGroupID).OP("IN", rankGroupIDExpr)),
 			sm.ForUpdate(),
 		).All(ctx, r.db)
 		if err != nil {
 			return nil, err
 		}
-		properties, err := convert.BobIntellectualPropertySliceToModelPropertySlice(propertiesBob)
+		allProperties, err = convert.BobIntellectualPropertySliceToModelPropertySlice(propertiesBob)
 		if err != nil {
 			return nil, err
 		}
-		allProperties = append(allProperties, properties...)
 	}
 
 	// 集約オブジェクトを作成
-	aggregate := model.NewIPIntellectualPropertyAggregate(modelCategory, rankGroups, allProperties)
+	aggregate := model.NewIPCategoryAggregate(modelCategory, rankGroups, allProperties)
 	return aggregate, nil
 }
 
-func (r *intellectualPropertyRepository) UpdateIntellectualPropertiesStock(ctx context.Context, drawnProperties []*model.IntellectualProperty) error {
+	func (r *intellectualPropertyRepository) UpdateIPPropertiesStock(ctx context.Context, drawnProperties []*model.IntellectualProperty) error {
 	// Drawメソッドで選ばれたプロパティの在庫を更新
 	// N+1問題が発生するので、修正予定
 	for _, property := range drawnProperties {

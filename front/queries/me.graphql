@@ -1,0 +1,13 @@
+query me {
+    me {
+      id
+      mailAddress
+      nickname
+      birthdate
+      gender
+      isAdmin
+      isMailmagazine
+      createdAt
+      updatedAt
+    }
+  }

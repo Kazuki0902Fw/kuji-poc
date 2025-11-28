@@ -2,8 +2,9 @@
 -- +migrate Up
 CREATE TABLE users (
     id VARCHAR(64) NOT NULL,
+    mail_address VARCHAR(255) NOT NULL,
     nickname VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     birthdate DATE NOT NULL,
     gender ENUM('male', 'female') NOT NULL,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
