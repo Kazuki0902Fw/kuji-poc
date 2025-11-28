@@ -28,6 +28,7 @@ import (
 // PurchaseTransaction is an object representing the database table.
 type PurchaseTransaction struct {
 	ID                    string                                  `db:"id,pk" `
+	UserID                string                                  `db:"user_id" `
 	IPCategoryID          string                                  `db:"ip_category_id" `
 	PurchaseQuantity      int32                                   `db:"purchase_quantity" `
 	PurchasePrice         decimal.Decimal                         `db:"purchase_price" `
@@ -54,16 +55,18 @@ type PurchaseTransactionsQuery = *mysql.ViewQuery[*PurchaseTransaction, Purchase
 // purchaseTransactionR is where relationships are stored.
 type purchaseTransactionR struct {
 	PurchaseHistories                      PurchaseHistorySlice          // purchase_histories_ibfk_1
-	IPCategoryIntellectualPropertyCategory *IntellectualPropertyCategory // purchase_transactions_ibfk_1
+	User                                   *User                         // purchase_transactions_ibfk_1
+	IPCategoryIntellectualPropertyCategory *IntellectualPropertyCategory // purchase_transactions_ibfk_2
 }
 
 func buildPurchaseTransactionColumns(alias string) purchaseTransactionColumns {
 	return purchaseTransactionColumns{
 		ColumnsExpr: expr.NewColumnsExpr(
-			"id", "ip_category_id", "purchase_quantity", "purchase_price", "payment_method", "provider_transaction_id", "status", "paid_at", "created_at", "updated_at",
+			"id", "user_id", "ip_category_id", "purchase_quantity", "purchase_price", "payment_method", "provider_transaction_id", "status", "paid_at", "created_at", "updated_at",
 		).WithParent("purchase_transactions"),
 		tableAlias:            alias,
 		ID:                    mysql.Quote(alias, "id"),
+		UserID:                mysql.Quote(alias, "user_id"),
 		IPCategoryID:          mysql.Quote(alias, "ip_category_id"),
 		PurchaseQuantity:      mysql.Quote(alias, "purchase_quantity"),
 		PurchasePrice:         mysql.Quote(alias, "purchase_price"),
@@ -80,6 +83,7 @@ type purchaseTransactionColumns struct {
 	expr.ColumnsExpr
 	tableAlias            string
 	ID                    mysql.Expression
+	UserID                mysql.Expression
 	IPCategoryID          mysql.Expression
 	PurchaseQuantity      mysql.Expression
 	PurchasePrice         mysql.Expression
@@ -104,6 +108,7 @@ func (purchaseTransactionColumns) AliasedAs(alias string) purchaseTransactionCol
 // Generated columns are not included
 type PurchaseTransactionSetter struct {
 	ID                    omit.Val[string]                                  `db:"id,pk" `
+	UserID                omit.Val[string]                                  `db:"user_id" `
 	IPCategoryID          omit.Val[string]                                  `db:"ip_category_id" `
 	PurchaseQuantity      omit.Val[int32]                                   `db:"purchase_quantity" `
 	PurchasePrice         omit.Val[decimal.Decimal]                         `db:"purchase_price" `
@@ -116,9 +121,12 @@ type PurchaseTransactionSetter struct {
 }
 
 func (s PurchaseTransactionSetter) SetColumns() []string {
-	vals := make([]string, 0, 10)
+	vals := make([]string, 0, 11)
 	if s.ID.IsValue() {
 		vals = append(vals, "id")
+	}
+	if s.UserID.IsValue() {
+		vals = append(vals, "user_id")
 	}
 	if s.IPCategoryID.IsValue() {
 		vals = append(vals, "ip_category_id")
@@ -153,6 +161,9 @@ func (s PurchaseTransactionSetter) SetColumns() []string {
 func (s PurchaseTransactionSetter) Overwrite(t *PurchaseTransaction) {
 	if s.ID.IsValue() {
 		t.ID = s.ID.MustGet()
+	}
+	if s.UserID.IsValue() {
+		t.UserID = s.UserID.MustGet()
 	}
 	if s.IPCategoryID.IsValue() {
 		t.IPCategoryID = s.IPCategoryID.MustGet()
@@ -194,6 +205,11 @@ func (s *PurchaseTransactionSetter) Apply(q *dialect.InsertQuery) {
 				return mysql.Raw("DEFAULT").WriteSQL(ctx, w, d, start)
 			}
 			return mysql.Arg(s.ID.MustGet()).WriteSQL(ctx, w, d, start)
+		}), bob.ExpressionFunc(func(ctx context.Context, w io.Writer, d bob.Dialect, start int) ([]any, error) {
+			if !(s.UserID.IsValue()) {
+				return mysql.Raw("DEFAULT").WriteSQL(ctx, w, d, start)
+			}
+			return mysql.Arg(s.UserID.MustGet()).WriteSQL(ctx, w, d, start)
 		}), bob.ExpressionFunc(func(ctx context.Context, w io.Writer, d bob.Dialect, start int) ([]any, error) {
 			if !(s.IPCategoryID.IsValue()) {
 				return mysql.Raw("DEFAULT").WriteSQL(ctx, w, d, start)
@@ -247,12 +263,19 @@ func (s PurchaseTransactionSetter) UpdateMod() bob.Mod[*dialect.UpdateQuery] {
 }
 
 func (s PurchaseTransactionSetter) Expressions(prefix ...string) []bob.Expression {
-	exprs := make([]bob.Expression, 0, 10)
+	exprs := make([]bob.Expression, 0, 11)
 
 	if s.ID.IsValue() {
 		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
 			mysql.Quote(append(prefix, "id")...),
 			mysql.Arg(s.ID),
+		}})
+	}
+
+	if s.UserID.IsValue() {
+		exprs = append(exprs, expr.Join{Sep: " = ", Exprs: []bob.Expression{
+			mysql.Quote(append(prefix, "user_id")...),
+			mysql.Arg(s.UserID),
 		}})
 	}
 
@@ -564,6 +587,25 @@ func (os PurchaseTransactionSlice) PurchaseHistories(mods ...bob.Mod[*dialect.Se
 	)...)
 }
 
+// User starts a query for related objects on users
+func (o *PurchaseTransaction) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
+	return Users.Query(append(mods,
+		sm.Where(Users.Columns.ID.EQ(mysql.Arg(o.UserID))),
+	)...)
+}
+
+func (os PurchaseTransactionSlice) User(mods ...bob.Mod[*dialect.SelectQuery]) UsersQuery {
+	PKArgSlice := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgSlice[i] = mysql.ArgGroup(o.UserID)
+	}
+	PKArgExpr := mysql.Group(PKArgSlice...)
+
+	return Users.Query(append(mods,
+		sm.Where(mysql.Group(Users.Columns.ID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // IPCategoryIntellectualPropertyCategory starts a query for related objects on intellectual_property_categories
 func (o *PurchaseTransaction) IPCategoryIntellectualPropertyCategory(mods ...bob.Mod[*dialect.SelectQuery]) IntellectualPropertyCategoriesQuery {
 	return IntellectualPropertyCategories.Query(append(mods,
@@ -651,6 +693,52 @@ func (purchaseTransaction0 *PurchaseTransaction) AttachPurchaseHistories(ctx con
 	return nil
 }
 
+func attachPurchaseTransactionUser0(ctx context.Context, exec bob.Executor, count int, purchaseTransaction0 *PurchaseTransaction, user1 *User) (*PurchaseTransaction, error) {
+	setter := &PurchaseTransactionSetter{
+		UserID: omit.From(user1.ID),
+	}
+
+	err := purchaseTransaction0.Update(ctx, exec, setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachPurchaseTransactionUser0: %w", err)
+	}
+
+	return purchaseTransaction0, nil
+}
+
+func (purchaseTransaction0 *PurchaseTransaction) InsertUser(ctx context.Context, exec bob.Executor, related *UserSetter) error {
+	user1, err := Users.Insert(related).One(ctx, exec)
+	if err != nil {
+		return fmt.Errorf("inserting related objects: %w", err)
+	}
+
+	_, err = attachPurchaseTransactionUser0(ctx, exec, 1, purchaseTransaction0, user1)
+	if err != nil {
+		return err
+	}
+
+	purchaseTransaction0.R.User = user1
+
+	user1.R.PurchaseTransactions = append(user1.R.PurchaseTransactions, purchaseTransaction0)
+
+	return nil
+}
+
+func (purchaseTransaction0 *PurchaseTransaction) AttachUser(ctx context.Context, exec bob.Executor, user1 *User) error {
+	var err error
+
+	_, err = attachPurchaseTransactionUser0(ctx, exec, 1, purchaseTransaction0, user1)
+	if err != nil {
+		return err
+	}
+
+	purchaseTransaction0.R.User = user1
+
+	user1.R.PurchaseTransactions = append(user1.R.PurchaseTransactions, purchaseTransaction0)
+
+	return nil
+}
+
 func attachPurchaseTransactionIPCategoryIntellectualPropertyCategory0(ctx context.Context, exec bob.Executor, count int, purchaseTransaction0 *PurchaseTransaction, intellectualPropertyCategory1 *IntellectualPropertyCategory) (*PurchaseTransaction, error) {
 	setter := &PurchaseTransactionSetter{
 		IPCategoryID: omit.From(intellectualPropertyCategory1.ID),
@@ -699,6 +787,7 @@ func (purchaseTransaction0 *PurchaseTransaction) AttachIPCategoryIntellectualPro
 
 type purchaseTransactionWhere[Q mysql.Filterable] struct {
 	ID                    mysql.WhereMod[Q, string]
+	UserID                mysql.WhereMod[Q, string]
 	IPCategoryID          mysql.WhereMod[Q, string]
 	PurchaseQuantity      mysql.WhereMod[Q, int32]
 	PurchasePrice         mysql.WhereMod[Q, decimal.Decimal]
@@ -717,6 +806,7 @@ func (purchaseTransactionWhere[Q]) AliasedAs(alias string) purchaseTransactionWh
 func buildPurchaseTransactionWhere[Q mysql.Filterable](cols purchaseTransactionColumns) purchaseTransactionWhere[Q] {
 	return purchaseTransactionWhere[Q]{
 		ID:                    mysql.Where[Q, string](cols.ID),
+		UserID:                mysql.Where[Q, string](cols.UserID),
 		IPCategoryID:          mysql.Where[Q, string](cols.IPCategoryID),
 		PurchaseQuantity:      mysql.Where[Q, int32](cols.PurchaseQuantity),
 		PurchasePrice:         mysql.Where[Q, decimal.Decimal](cols.PurchasePrice),
@@ -749,6 +839,18 @@ func (o *PurchaseTransaction) Preload(name string, retrieved any) error {
 			}
 		}
 		return nil
+	case "User":
+		rel, ok := retrieved.(*User)
+		if !ok {
+			return fmt.Errorf("purchaseTransaction cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.User = rel
+
+		if rel != nil {
+			rel.R.PurchaseTransactions = PurchaseTransactionSlice{o}
+		}
+		return nil
 	case "IPCategoryIntellectualPropertyCategory":
 		rel, ok := retrieved.(*IntellectualPropertyCategory)
 		if !ok {
@@ -767,11 +869,25 @@ func (o *PurchaseTransaction) Preload(name string, retrieved any) error {
 }
 
 type purchaseTransactionPreloader struct {
+	User                                   func(...mysql.PreloadOption) mysql.Preloader
 	IPCategoryIntellectualPropertyCategory func(...mysql.PreloadOption) mysql.Preloader
 }
 
 func buildPurchaseTransactionPreloader() purchaseTransactionPreloader {
 	return purchaseTransactionPreloader{
+		User: func(opts ...mysql.PreloadOption) mysql.Preloader {
+			return mysql.Preload[*User, UserSlice](mysql.PreloadRel{
+				Name: "User",
+				Sides: []mysql.PreloadSide{
+					{
+						From:        PurchaseTransactions,
+						To:          Users,
+						FromColumns: []string{"user_id"},
+						ToColumns:   []string{"id"},
+					},
+				},
+			}, Users.Columns.Names(), opts...)
+		},
 		IPCategoryIntellectualPropertyCategory: func(opts ...mysql.PreloadOption) mysql.Preloader {
 			return mysql.Preload[*IntellectualPropertyCategory, IntellectualPropertyCategorySlice](mysql.PreloadRel{
 				Name: "IPCategoryIntellectualPropertyCategory",
@@ -790,12 +906,16 @@ func buildPurchaseTransactionPreloader() purchaseTransactionPreloader {
 
 type purchaseTransactionThenLoader[Q orm.Loadable] struct {
 	PurchaseHistories                      func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	User                                   func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 	IPCategoryIntellectualPropertyCategory func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildPurchaseTransactionThenLoader[Q orm.Loadable]() purchaseTransactionThenLoader[Q] {
 	type PurchaseHistoriesLoadInterface interface {
 		LoadPurchaseHistories(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
+	type UserLoadInterface interface {
+		LoadUser(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
 	type IPCategoryIntellectualPropertyCategoryLoadInterface interface {
 		LoadIPCategoryIntellectualPropertyCategory(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
@@ -806,6 +926,12 @@ func buildPurchaseTransactionThenLoader[Q orm.Loadable]() purchaseTransactionThe
 			"PurchaseHistories",
 			func(ctx context.Context, exec bob.Executor, retrieved PurchaseHistoriesLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
 				return retrieved.LoadPurchaseHistories(ctx, exec, mods...)
+			},
+		),
+		User: thenLoadBuilder[Q](
+			"User",
+			func(ctx context.Context, exec bob.Executor, retrieved UserLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadUser(ctx, exec, mods...)
 			},
 		),
 		IPCategoryIntellectualPropertyCategory: thenLoadBuilder[Q](
@@ -878,6 +1004,58 @@ func (os PurchaseTransactionSlice) LoadPurchaseHistories(ctx context.Context, ex
 	return nil
 }
 
+// LoadUser loads the purchaseTransaction's User into the .R struct
+func (o *PurchaseTransaction) LoadUser(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.User = nil
+
+	related, err := o.User(mods...).One(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	related.R.PurchaseTransactions = PurchaseTransactionSlice{o}
+
+	o.R.User = related
+	return nil
+}
+
+// LoadUser loads the purchaseTransaction's User into the .R struct
+func (os PurchaseTransactionSlice) LoadUser(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	users, err := os.User(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range users {
+
+			if !(o.UserID == rel.ID) {
+				continue
+			}
+
+			rel.R.PurchaseTransactions = append(rel.R.PurchaseTransactions, o)
+
+			o.R.User = rel
+			break
+		}
+	}
+
+	return nil
+}
+
 // LoadIPCategoryIntellectualPropertyCategory loads the purchaseTransaction's IPCategoryIntellectualPropertyCategory into the .R struct
 func (o *PurchaseTransaction) LoadIPCategoryIntellectualPropertyCategory(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
 	if o == nil {
@@ -933,6 +1111,7 @@ func (os PurchaseTransactionSlice) LoadIPCategoryIntellectualPropertyCategory(ct
 type purchaseTransactionJoins[Q dialect.Joinable] struct {
 	typ                                    string
 	PurchaseHistories                      modAs[Q, purchaseHistoryColumns]
+	User                                   modAs[Q, userColumns]
 	IPCategoryIntellectualPropertyCategory modAs[Q, intellectualPropertyCategoryColumns]
 }
 
@@ -951,6 +1130,20 @@ func buildPurchaseTransactionJoins[Q dialect.Joinable](cols purchaseTransactionC
 				{
 					mods = append(mods, dialect.Join[Q](typ, PurchaseHistories.Name().As(to.Alias())).On(
 						to.PurchaseTransactionID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
+		User: modAs[Q, userColumns]{
+			c: Users.Columns,
+			f: func(to userColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, Users.Name().As(to.Alias())).On(
+						to.ID.EQ(cols.UserID),
 					))
 				}
 

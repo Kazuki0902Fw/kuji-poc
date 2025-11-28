@@ -29,10 +29,13 @@ type IntellectualPropertyUseCase interface {
 	ListIntellectualPropertyRankGroupsByCategoryID(ctx context.Context, categoryID model.ID) ([]*model.IntellectualPropertyRankGroup, error)
 	ListIntellectualProperties(ctx context.Context) ([]*model.IntellectualProperty, error)
 	ListIntellectualPropertiesByRankGroupID(ctx context.Context, rankGroupID model.ID) ([]*model.IntellectualProperty, error)
+	GetIntellectualPropertyByID(ctx context.Context, id model.ID) (*model.IntellectualProperty, error)
 	GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
 	GetIntellectualPropertyCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
 	GetRankGroupByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyRankGroup, error)
-	DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error)
+	DrawIntellectualProperty(ctx context.Context, userID model.ID, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error)
+	ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx context.Context, purchaseTransactionID model.ID) ([]*model.IntellectualPropertyPurchaseHistory, error)
+	ListPurchaseTransactionsByUserID(ctx context.Context, userID model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error)
 }
 
 var _ UseCases = &useCases{}

@@ -195,11 +195,6 @@ import { isLoggedIn as checkIsLoggedIn } from '~/utils/tokenStore';
 
 const isMenuOpen = ref(false);
 
-const { data: meData, error: meError } = await useAsyncGql("me", null, {
-  getCachedData: () => undefined,
-  clientId: 'default'
-});
-
 const isLoggedIn = computed(() => {
   return checkIsLoggedIn();
 });
@@ -503,7 +498,7 @@ const handleLogout = async () => {
 .footer {
   background-color: #333;
   color: white;
-  padding: 30px 20px;
+  padding: 20px 20px;
   margin-top: auto;
 }
 
@@ -511,7 +506,7 @@ const handleLogout = async () => {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
   gap: 30px;
   flex-wrap: wrap;

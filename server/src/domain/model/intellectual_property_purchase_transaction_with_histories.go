@@ -1,0 +1,13 @@
+package model
+
+type IntellectualPropertyPurchaseTransactionWithHistories struct {
+	PurchaseTransaction *IntellectualPropertyPurchaseTransaction
+	PurchaseHistories []*IntellectualPropertyPurchaseHistory
+}
+
+func NewIntellectualPropertyPurchaseTransactionWithHistories(purchaseTransaction *IntellectualPropertyPurchaseTransaction, purchaseHistories []*IntellectualPropertyPurchaseHistory) *IntellectualPropertyPurchaseTransactionWithHistories {
+	return &IntellectualPropertyPurchaseTransactionWithHistories{
+		PurchaseTransaction: purchaseTransaction,
+		PurchaseHistories: purchaseHistories,
+	}
+}

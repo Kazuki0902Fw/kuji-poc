@@ -12,10 +12,14 @@ type IntellectualPropertyRepository interface {
 	ListRankGroupsByCategoryID(ctx context.Context, categoryID model.ID) ([]*model.IntellectualPropertyRankGroup, error)
 	ListProperties(ctx context.Context) ([]*model.IntellectualProperty, error)
 	ListPropertiesByRankGroupID(ctx context.Context, rankGroupID model.ID) ([]*model.IntellectualProperty, error)
+	GetPropertyByID(ctx context.Context, id model.ID) (*model.IntellectualProperty, error)
 	GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error)
 	GetRankGroupByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyRankGroup, error)
 	GetIPCategoryAggregateByCategoryID(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error)
 	GetIPCategoryAggregateByCategoryIDWithPessimisticLock(ctx context.Context, categoryID model.ID) (*model.IPCategoryAggregate, error)
 	UpdateIPPropertiesStock(ctx context.Context, drawnProperties []*model.IntellectualProperty) error
+	CreateIPCategoryPurchaseTransaction(ctx context.Context, purchaseTransactionWithHistories *model.IntellectualPropertyPurchaseTransactionWithHistories) error
+	ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx context.Context, purchaseTransactionID model.ID) ([]*model.IntellectualPropertyPurchaseHistory, error)
+	ListPurchaseTransactionsByUserID(ctx context.Context, userID model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error)
 }
 

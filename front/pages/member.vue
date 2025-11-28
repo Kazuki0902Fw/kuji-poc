@@ -77,40 +77,41 @@ if (!loggedIn.value) {
 
 .member-button {
   padding: 15px 20px;
-  border: none;
+  border: 2px solid #c30000;
   border-radius: 4px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
+  background-color: white;
+  color: #333;
 }
 
 .member-button.primary {
-  background-color: #0066cc;
-  color: white;
+  background-color: white;
+  color: #333;
 }
 
 .member-button.primary:hover {
-  background-color: #0052a3;
+  background-color: #ffe4e1;
 }
 
 .member-button.secondary {
-  background-color: #f8f9fa;
+  background-color: white;
   color: #333;
-  border: 1px solid #ddd;
 }
 
 .member-button.secondary:hover {
-  background-color: #e9ecef;
+  background-color: #ffe4e1;
 }
 
 .member-button.danger {
-  background-color: #dc3545;
-  color: white;
+  background-color: white;
+  color: #333;
 }
 
 .member-button.danger:hover {
-  background-color: #c82333;
+  background-color: #ffe4e1;
 }
 
 @media screen and (max-width: 767px) {
@@ -127,4 +128,5 @@ if (!loggedIn.value) {
   }
 }
 </style>
+
 

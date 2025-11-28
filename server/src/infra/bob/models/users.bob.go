@@ -50,10 +50,11 @@ type UsersQuery = *mysql.ViewQuery[*User, UserSlice]
 
 // userR is where relationships are stored.
 type userR struct {
-	Contacts          ContactSlice         // contacts_ibfk_1
-	CreditCards       CreditCardSlice      // credit_cards_ibfk_1
-	RefreshToken      *RefreshToken        // refresh_tokens_ibfk_1
-	ShippingAddresses ShippingAddressSlice // shipping_addresses_ibfk_1
+	Contacts             ContactSlice             // contacts_ibfk_1
+	CreditCards          CreditCardSlice          // credit_cards_ibfk_1
+	PurchaseTransactions PurchaseTransactionSlice // purchase_transactions_ibfk_1
+	RefreshToken         *RefreshToken            // refresh_tokens_ibfk_1
+	ShippingAddresses    ShippingAddressSlice     // shipping_addresses_ibfk_1
 }
 
 func buildUserColumns(alias string) userColumns {
@@ -582,6 +583,25 @@ func (os UserSlice) CreditCards(mods ...bob.Mod[*dialect.SelectQuery]) CreditCar
 	)...)
 }
 
+// PurchaseTransactions starts a query for related objects on purchase_transactions
+func (o *User) PurchaseTransactions(mods ...bob.Mod[*dialect.SelectQuery]) PurchaseTransactionsQuery {
+	return PurchaseTransactions.Query(append(mods,
+		sm.Where(PurchaseTransactions.Columns.UserID.EQ(mysql.Arg(o.ID))),
+	)...)
+}
+
+func (os UserSlice) PurchaseTransactions(mods ...bob.Mod[*dialect.SelectQuery]) PurchaseTransactionsQuery {
+	PKArgSlice := make([]bob.Expression, len(os))
+	for i, o := range os {
+		PKArgSlice[i] = mysql.ArgGroup(o.ID)
+	}
+	PKArgExpr := mysql.Group(PKArgSlice...)
+
+	return PurchaseTransactions.Query(append(mods,
+		sm.Where(mysql.Group(PurchaseTransactions.Columns.UserID).OP("IN", PKArgExpr)),
+	)...)
+}
+
 // RefreshToken starts a query for related objects on refresh_tokens
 func (o *User) RefreshToken(mods ...bob.Mod[*dialect.SelectQuery]) RefreshTokensQuery {
 	return RefreshTokens.Query(append(mods,
@@ -748,6 +768,74 @@ func (user0 *User) AttachCreditCards(ctx context.Context, exec bob.Executor, rel
 	}
 
 	user0.R.CreditCards = append(user0.R.CreditCards, creditCards1...)
+
+	for _, rel := range related {
+		rel.R.User = user0
+	}
+
+	return nil
+}
+
+func insertUserPurchaseTransactions0(ctx context.Context, exec bob.Executor, purchaseTransactions1 []*PurchaseTransactionSetter, user0 *User) (PurchaseTransactionSlice, error) {
+	for i := range purchaseTransactions1 {
+		purchaseTransactions1[i].UserID = omit.From(user0.ID)
+	}
+
+	ret, err := PurchaseTransactions.Insert(bob.ToMods(purchaseTransactions1...)).All(ctx, exec)
+	if err != nil {
+		return ret, fmt.Errorf("insertUserPurchaseTransactions0: %w", err)
+	}
+
+	return ret, nil
+}
+
+func attachUserPurchaseTransactions0(ctx context.Context, exec bob.Executor, count int, purchaseTransactions1 PurchaseTransactionSlice, user0 *User) (PurchaseTransactionSlice, error) {
+	setter := &PurchaseTransactionSetter{
+		UserID: omit.From(user0.ID),
+	}
+
+	err := purchaseTransactions1.UpdateAll(ctx, exec, *setter)
+	if err != nil {
+		return nil, fmt.Errorf("attachUserPurchaseTransactions0: %w", err)
+	}
+
+	return purchaseTransactions1, nil
+}
+
+func (user0 *User) InsertPurchaseTransactions(ctx context.Context, exec bob.Executor, related ...*PurchaseTransactionSetter) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+
+	purchaseTransactions1, err := insertUserPurchaseTransactions0(ctx, exec, related, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.PurchaseTransactions = append(user0.R.PurchaseTransactions, purchaseTransactions1...)
+
+	for _, rel := range purchaseTransactions1 {
+		rel.R.User = user0
+	}
+	return nil
+}
+
+func (user0 *User) AttachPurchaseTransactions(ctx context.Context, exec bob.Executor, related ...*PurchaseTransaction) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	purchaseTransactions1 := PurchaseTransactionSlice(related)
+
+	_, err = attachUserPurchaseTransactions0(ctx, exec, len(related), purchaseTransactions1, user0)
+	if err != nil {
+		return err
+	}
+
+	user0.R.PurchaseTransactions = append(user0.R.PurchaseTransactions, purchaseTransactions1...)
 
 	for _, rel := range related {
 		rel.R.User = user0
@@ -942,6 +1030,20 @@ func (o *User) Preload(name string, retrieved any) error {
 			}
 		}
 		return nil
+	case "PurchaseTransactions":
+		rels, ok := retrieved.(PurchaseTransactionSlice)
+		if !ok {
+			return fmt.Errorf("user cannot load %T as %q", retrieved, name)
+		}
+
+		o.R.PurchaseTransactions = rels
+
+		for _, rel := range rels {
+			if rel != nil {
+				rel.R.User = o
+			}
+		}
+		return nil
 	case "RefreshToken":
 		rel, ok := retrieved.(*RefreshToken)
 		if !ok {
@@ -996,10 +1098,11 @@ func buildUserPreloader() userPreloader {
 }
 
 type userThenLoader[Q orm.Loadable] struct {
-	Contacts          func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
-	CreditCards       func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
-	RefreshToken      func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
-	ShippingAddresses func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	Contacts             func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	CreditCards          func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	PurchaseTransactions func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	RefreshToken         func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
+	ShippingAddresses    func(...bob.Mod[*dialect.SelectQuery]) orm.Loader[Q]
 }
 
 func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
@@ -1008,6 +1111,9 @@ func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
 	}
 	type CreditCardsLoadInterface interface {
 		LoadCreditCards(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
+	}
+	type PurchaseTransactionsLoadInterface interface {
+		LoadPurchaseTransactions(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
 	}
 	type RefreshTokenLoadInterface interface {
 		LoadRefreshToken(context.Context, bob.Executor, ...bob.Mod[*dialect.SelectQuery]) error
@@ -1027,6 +1133,12 @@ func buildUserThenLoader[Q orm.Loadable]() userThenLoader[Q] {
 			"CreditCards",
 			func(ctx context.Context, exec bob.Executor, retrieved CreditCardsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
 				return retrieved.LoadCreditCards(ctx, exec, mods...)
+			},
+		),
+		PurchaseTransactions: thenLoadBuilder[Q](
+			"PurchaseTransactions",
+			func(ctx context.Context, exec bob.Executor, retrieved PurchaseTransactionsLoadInterface, mods ...bob.Mod[*dialect.SelectQuery]) error {
+				return retrieved.LoadPurchaseTransactions(ctx, exec, mods...)
 			},
 		),
 		RefreshToken: thenLoadBuilder[Q](
@@ -1166,6 +1278,67 @@ func (os UserSlice) LoadCreditCards(ctx context.Context, exec bob.Executor, mods
 	return nil
 }
 
+// LoadPurchaseTransactions loads the user's PurchaseTransactions into the .R struct
+func (o *User) LoadPurchaseTransactions(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if o == nil {
+		return nil
+	}
+
+	// Reset the relationship
+	o.R.PurchaseTransactions = nil
+
+	related, err := o.PurchaseTransactions(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, rel := range related {
+		rel.R.User = o
+	}
+
+	o.R.PurchaseTransactions = related
+	return nil
+}
+
+// LoadPurchaseTransactions loads the user's PurchaseTransactions into the .R struct
+func (os UserSlice) LoadPurchaseTransactions(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
+	if len(os) == 0 {
+		return nil
+	}
+
+	purchaseTransactions, err := os.PurchaseTransactions(mods...).All(ctx, exec)
+	if err != nil {
+		return err
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		o.R.PurchaseTransactions = nil
+	}
+
+	for _, o := range os {
+		if o == nil {
+			continue
+		}
+
+		for _, rel := range purchaseTransactions {
+
+			if !(o.ID == rel.UserID) {
+				continue
+			}
+
+			rel.R.User = o
+
+			o.R.PurchaseTransactions = append(o.R.PurchaseTransactions, rel)
+		}
+	}
+
+	return nil
+}
+
 // LoadRefreshToken loads the user's RefreshToken into the .R struct
 func (o *User) LoadRefreshToken(ctx context.Context, exec bob.Executor, mods ...bob.Mod[*dialect.SelectQuery]) error {
 	if o == nil {
@@ -1280,11 +1453,12 @@ func (os UserSlice) LoadShippingAddresses(ctx context.Context, exec bob.Executor
 }
 
 type userJoins[Q dialect.Joinable] struct {
-	typ               string
-	Contacts          modAs[Q, contactColumns]
-	CreditCards       modAs[Q, creditCardColumns]
-	RefreshToken      modAs[Q, refreshTokenColumns]
-	ShippingAddresses modAs[Q, shippingAddressColumns]
+	typ                  string
+	Contacts             modAs[Q, contactColumns]
+	CreditCards          modAs[Q, creditCardColumns]
+	PurchaseTransactions modAs[Q, purchaseTransactionColumns]
+	RefreshToken         modAs[Q, refreshTokenColumns]
+	ShippingAddresses    modAs[Q, shippingAddressColumns]
 }
 
 func (j userJoins[Q]) aliasedAs(alias string) userJoins[Q] {
@@ -1315,6 +1489,20 @@ func buildUserJoins[Q dialect.Joinable](cols userColumns, typ string) userJoins[
 
 				{
 					mods = append(mods, dialect.Join[Q](typ, CreditCards.Name().As(to.Alias())).On(
+						to.UserID.EQ(cols.ID),
+					))
+				}
+
+				return mods
+			},
+		},
+		PurchaseTransactions: modAs[Q, purchaseTransactionColumns]{
+			c: PurchaseTransactions.Columns,
+			f: func(to purchaseTransactionColumns) bob.Mod[Q] {
+				mods := make(mods.QueryMods[Q], 0, 1)
+
+				{
+					mods = append(mods, dialect.Join[Q](typ, PurchaseTransactions.Name().As(to.Alias())).On(
 						to.UserID.EQ(cols.ID),
 					))
 				}

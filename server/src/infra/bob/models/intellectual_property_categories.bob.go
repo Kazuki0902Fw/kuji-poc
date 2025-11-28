@@ -54,7 +54,7 @@ type IntellectualPropertyCategoriesQuery = *mysql.ViewQuery[*IntellectualPropert
 // intellectualPropertyCategoryR is where relationships are stored.
 type intellectualPropertyCategoryR struct {
 	IPCategoryIntellectualPropertyRankGroups IntellectualPropertyRankGroupSlice // intellectual_property_rank_groups_ibfk_1
-	IPCategoryPurchaseTransactions           PurchaseTransactionSlice           // purchase_transactions_ibfk_1
+	IPCategoryPurchaseTransactions           PurchaseTransactionSlice           // purchase_transactions_ibfk_2
 }
 
 func buildIntellectualPropertyCategoryColumns(alias string) intellectualPropertyCategoryColumns {

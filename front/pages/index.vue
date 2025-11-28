@@ -1,22 +1,5 @@
 <template>
   <div class="category-list-page">
-    
-    <!-- カルーセル -->
-    <div v-if="data && data.intellectualPropertyCategories.length > 0" class="carousel-container">
-      <div class="carousel" ref="carouselRef">
-        <ul class="carousel-content">
-          <li 
-            v-for="category in data.intellectualPropertyCategories" 
-            :key="category.id"
-            class="carousel-item"
-            @click="goToCategoryDetail(category.id)"
-          >
-            <CategoryBanner :category="category" />
-          </li>
-        </ul>
-      </div>
-    </div>
-
     <!-- カテゴリーグリッド（単一カラム） -->
     <div v-if="data && data.intellectualPropertyCategories.length > 0" class="category-grid">
       <CategoryBanner 
@@ -129,48 +112,9 @@
 <script setup>
 const router = useRouter();
 
-// カルーセルの参照
-const carouselRef = ref(null);
-let autoSlideInterval = null;
-
 // キャッシュを無効化して常に最新データを取得
 const { data, error } = await useAsyncGql("intellectualPropertyCategories", null, {
   getCachedData: () => null, // キャッシュを無効化
-});
-
-// 自動スライド機能
-onMounted(() => {
-  if (!carouselRef.value) return;
-  
-  const carousel = carouselRef.value;
-  const content = carousel.querySelector('.carousel-content');
-  if (!content) return;
-  
-  const items = content.querySelectorAll('li');
-  if (items.length === 0) return;
-  
-  let currentIndex = 0;
-  
-  // 5秒間隔で自動スライド
-  autoSlideInterval = setInterval(() => {
-    currentIndex = (currentIndex + 1) % items.length;
-    const item = items[currentIndex];
-    if (item) {
-      // scrollIntoViewを使ってアイテムを中央に配置
-      item.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
-      });
-    }
-  }, 5000);
-});
-
-// クリーンアップ
-onUnmounted(() => {
-  if (autoSlideInterval) {
-    clearInterval(autoSlideInterval);
-  }
 });
 
 // ランクグループの在庫数を計算する関数
@@ -238,34 +182,6 @@ const formatDate = (date) => {
 </script>
 
 <style scoped>
-.carousel-container {
-  margin-bottom: 40px;
-}
-
-.carousel {
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding: 0 50%;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-
-.carousel-content {
-  display: flex;
-  gap: 20px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.carousel-item {
-  scroll-snap-align: center;
-  flex-shrink: 0;
-  width: 100%;
-  max-width: 400px;
-  cursor: pointer;
-}
-
 .category-list-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -279,8 +195,8 @@ h1 {
 }
 
 .category-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
@@ -498,6 +414,10 @@ h1 {
   .about-description {
     font-size: 1rem;
     padding: 0 10px;
+  }
+
+  .category-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

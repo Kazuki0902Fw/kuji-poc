@@ -74,6 +74,17 @@ func (r *intellectualPropertyRepository) ListPropertiesByRankGroupID(ctx context
 	return convert.BobIntellectualPropertySliceToModelPropertySlice(properties)
 }
 
+func (r *intellectualPropertyRepository) GetPropertyByID(ctx context.Context, id model.ID) (*model.IntellectualProperty, error) {
+	property, err := models.IntellectualProperties.Query(
+		sm.Where(models.IntellectualProperties.Columns.ID.EQ(mysql.Arg(id.String()))),
+	).One(ctx, r.db)
+	if err != nil {
+		return nil, err
+	}
+
+	return convert.BobIntellectualPropertyToModelProperty(property)
+}
+
 func (r *intellectualPropertyRepository) GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error) {
 	category, err := models.IntellectualPropertyCategories.Query(
 		sm.Where(models.IntellectualPropertyCategories.Columns.ID.EQ(mysql.Arg(id.String()))),
@@ -210,5 +221,51 @@ func (r *intellectualPropertyRepository) GetIPCategoryAggregateByCategoryIDWithP
 	}
 
 	return nil
+}
+
+func (r *intellectualPropertyRepository) CreateIPCategoryPurchaseTransaction(ctx context.Context, purchaseTransactionWithHistories *model.IntellectualPropertyPurchaseTransactionWithHistories) error {
+	transaction := purchaseTransactionWithHistories.PurchaseTransaction
+	purchaseHistories := purchaseTransactionWithHistories.PurchaseHistories
+
+	// トランザクションを作成
+	setter := convert.ModelPurchaseTransactionToBobPurchaseTransactionSetter(transaction)
+	_, err := models.PurchaseTransactions.Insert(setter).One(ctx, r.db)
+	if err != nil {
+		return fmt.Errorf("トランザクション更新エラー: %w", err)
+	}
+
+	// 購入履歴を作成
+	for _, purchaseHistory := range purchaseHistories {
+		historySetter := convert.ModelPurchaseHistoryToBobPurchaseHistorySetter(purchaseHistory)
+		_, err = models.PurchaseHistories.Insert(historySetter).One(ctx, r.db)
+		if err != nil {
+			return fmt.Errorf("購入履歴作成エラー: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (r *intellectualPropertyRepository) ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx context.Context, purchaseTransactionID model.ID) ([]*model.IntellectualPropertyPurchaseHistory, error) {
+	purchaseHistoriesBob, err := models.PurchaseHistories.Query(
+		sm.Where(models.PurchaseHistories.Columns.PurchaseTransactionID.EQ(mysql.Arg(purchaseTransactionID.String()))),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("購入履歴取得エラー: %w", err)
+	}
+
+	return convert.BobPurchaseHistorySliceToModelPurchaseHistorySlice(purchaseHistoriesBob)
+}
+
+func (r *intellectualPropertyRepository) ListPurchaseTransactionsByUserID(ctx context.Context, userID model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
+	purchaseTransactionsBob, err := models.PurchaseTransactions.Query(
+		sm.Where(models.PurchaseTransactions.Columns.UserID.EQ(mysql.Arg(userID.String()))),
+		sm.OrderBy(models.PurchaseTransactions.Columns.CreatedAt).Desc(),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("購入トランザクション取得エラー: %w", err)
+	}
+
+	return convert.BobPurchaseTransactionSliceToModelPurchaseTransactionSlice(purchaseTransactionsBob)
 }
 

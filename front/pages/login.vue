@@ -4,8 +4,11 @@
     <div v-if="errorMessage" class="error-banner">
       {{ errorMessage }}
     </div>
-    <div class="login-card">
-      <h1 class="login-title">ログイン</h1>
+    <div class="login-container">
+      <h1 class="login-title">
+        <span class="title-bar"></span>
+        ログイン
+      </h1>
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="mailAddress" class="form-label">メールアドレス</label>
@@ -42,10 +45,6 @@
         <h2 class="register-title">新規会員登録</h2>
         <p class="register-text">初めてご利用の方はこちらから会員登録をお願いいたします。</p>
         <NuxtLink to="/register" class="register-button">新規会員登録</NuxtLink>
-      </div>
-      <div class="amazon-pay-section">
-        <h2 class="amazon-pay-title">Amazon Payでログイン</h2>
-        <button class="amazon-pay-button">Amazon Payでログイン</button>
       </div>
       <div class="disclaimer">
         <p>※ログインすることで、<NuxtLink to="/terms-of-service" class="disclaimer-link">利用規約</NuxtLink>および<NuxtLink to="/privacy-policy" class="disclaimer-link">個人情報保護方針</NuxtLink>に同意したものとみなされます。</p>
@@ -109,7 +108,6 @@ const handleLogin = async () => {
   align-items: flex-start;
   min-height: 60vh;
   padding: 40px 20px;
-  background-color: #f5f5f5;
 }
 
 .error-banner {
@@ -125,22 +123,32 @@ const handleLogin = async () => {
   font-weight: 500;
 }
 
-.login-card {
+.login-container {
   background-color: white;
   border-radius: 8px;
-  max-width: 500px;
+  max-width: 600px;
   width: 100%;
-  padding: 40px;
+  padding: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-top: 60px;
 }
 
 .login-title {
-  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #333;
-  margin-bottom: 30px;
-  text-align: center;
+  margin: 0 0 30px 0;
+  border-bottom: 3px solid #c30000;
+}
+
+.title-bar {
+  width: 6px;
+  height: 40px;
+  background-color: #c30000;
+  flex-shrink: 0;
 }
 
 .login-form {
@@ -176,7 +184,7 @@ const handleLogin = async () => {
 .login-button {
   width: 100%;
   padding: 15px;
-  background-color: #ff9900;
+  background-color: #c30000;
   color: white;
   border: none;
   border-radius: 4px;
@@ -187,7 +195,7 @@ const handleLogin = async () => {
 }
 
 .login-button:hover:not(:disabled) {
-  background-color: #e68900;
+  background-color: #d31a1a;
 }
 
 .login-button:disabled {
@@ -243,36 +251,6 @@ const handleLogin = async () => {
   background-color: #0052a3;
 }
 
-.amazon-pay-section {
-  border-top: 1px solid #e0e0e0;
-  padding-top: 30px;
-  margin-bottom: 30px;
-}
-
-.amazon-pay-title {
-  font-size: 1.3rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.amazon-pay-button {
-  width: 100%;
-  padding: 15px;
-  background-color: #ff9900;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1.1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.amazon-pay-button:hover {
-  background-color: #e68900;
-}
-
 .disclaimer {
   border-top: 1px solid #e0e0e0;
   padding-top: 20px;
@@ -296,13 +274,15 @@ const handleLogin = async () => {
     padding: 20px 10px;
   }
 
-  .login-card {
+  .login-container {
     padding: 20px;
   }
 
   .login-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    margin-bottom: 30px;
   }
 }
 </style>
+
 

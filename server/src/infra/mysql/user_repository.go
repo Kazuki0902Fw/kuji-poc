@@ -62,7 +62,7 @@ func (r *userRepository) GetByMailAddressAndPassword(ctx context.Context, mailAd
 
 func (r *userRepository) GetUserByID(ctx context.Context, userID model.ID) (*model.User, error) {
 	userRecord, err := models.Users.Query(
-		sm.Where(models.Users.Columns.ID.EQ(mysql.Arg(userID))),
+		sm.Where(models.Users.Columns.ID.EQ(mysql.Arg(userID.String()))),
 	).One(ctx, r.db)
 	if err == sql.ErrNoRows {
 		return nil, errors.WithStack(fmt.Errorf("user not found by id. id: %s", userID))

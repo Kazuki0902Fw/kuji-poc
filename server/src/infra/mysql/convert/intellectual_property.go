@@ -1,10 +1,15 @@
 package convert
 
 import (
+	"time"
+
 	"kujicole/domain/model"
 	"kujicole/infra/bob/enums"
 	"kujicole/infra/bob/models"
 	"kujicole/util"
+	"github.com/aarondl/opt/omit"
+	"github.com/aarondl/opt/omitnull"
+	"github.com/shopspring/decimal"
 	"github.com/pkg/errors"
 )
 
@@ -143,6 +148,141 @@ func BobIntellectualPropertyToModelProperty(property *models.IntellectualPropert
 
 func BobIntellectualPropertySliceToModelPropertySlice(properties []*models.IntellectualProperty) ([]*model.IntellectualProperty, error) {
 	return util.MapWithErr(properties, BobIntellectualPropertyToModelProperty)
+}
+
+func ModelPurchaseHistoryToBobPurchaseHistorySetter(purchaseHistory *model.IntellectualPropertyPurchaseHistory) *models.PurchaseHistorySetter {
+	return &models.PurchaseHistorySetter{
+		ID:                     omit.From(purchaseHistory.ID.String()),
+		PurchaseTransactionID:  omit.From(purchaseHistory.PurchaseTransactionID.String()),
+		IntellectualPropertyID: omit.From(purchaseHistory.IntellectualPropertyID.String()),
+		CreatedAt:              omit.From(purchaseHistory.CreatedAt),
+		UpdatedAt:              omit.From(purchaseHistory.UpdatedAt),
+	}
+}
+
+func BobPurchaseHistoryToModelPurchaseHistory(historyBob *models.PurchaseHistory) (*model.IntellectualPropertyPurchaseHistory, error) {
+	historyID, err := model.IDFromString(historyBob.ID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	purchaseTransactionID, err := model.IDFromString(historyBob.PurchaseTransactionID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	intellectualPropertyID, err := model.IDFromString(historyBob.IntellectualPropertyID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &model.IntellectualPropertyPurchaseHistory{
+		ID:                     historyID,
+		PurchaseTransactionID:  purchaseTransactionID,
+		IntellectualPropertyID: intellectualPropertyID,
+		CreatedAt:              historyBob.CreatedAt,
+		UpdatedAt:              historyBob.UpdatedAt,
+	}, nil
+}
+
+func BobPurchaseHistorySliceToModelPurchaseHistorySlice(histories []*models.PurchaseHistory) ([]*model.IntellectualPropertyPurchaseHistory, error) {
+	return util.MapWithErr(histories, BobPurchaseHistoryToModelPurchaseHistory)
+}
+
+func BobPurchaseTransactionToModelPurchaseTransaction(transactionBob *models.PurchaseTransaction) (*model.IntellectualPropertyPurchaseTransaction, error) {
+	transactionID, err := model.IDFromString(transactionBob.ID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	userID, err := model.IDFromString(transactionBob.UserID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	ipCategoryID, err := model.IDFromString(transactionBob.IPCategoryID)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	// Convert enum
+	var paymentMethod model.PurchaseTransactionPaymentMethod
+	switch transactionBob.PaymentMethod {
+	case enums.PurchaseTransactionsPaymentMethodCreditCard:
+		paymentMethod = model.PurchaseTransactionPaymentMethodCreditCard
+	case enums.PurchaseTransactionsPaymentMethodBankTransfer:
+		paymentMethod = model.PurchaseTransactionPaymentMethodBankTransfer
+	case enums.PurchaseTransactionsPaymentMethodOther:
+		paymentMethod = model.PurchaseTransactionPaymentMethodOther
+	default:
+		paymentMethod = model.PurchaseTransactionPaymentMethod(transactionBob.PaymentMethod.String())
+	}
+
+	var status model.PurchaseTransactionStatus
+	switch transactionBob.Status {
+	case enums.PurchaseTransactionsStatusPaymentPending:
+		status = model.PurchaseTransactionStatusPaymentPending
+	case enums.PurchaseTransactionsStatusPaymentSuccess:
+		status = model.PurchaseTransactionStatusPaymentSuccess
+	case enums.PurchaseTransactionsStatusPaymentFailed:
+		status = model.PurchaseTransactionStatusPaymentFailed
+	case enums.PurchaseTransactionsStatusDrawSuccess:
+		status = model.PurchaseTransactionStatusDrawSuccess
+	case enums.PurchaseTransactionsStatusDrawFailed:
+		status = model.PurchaseTransactionStatusDrawFailed
+	default:
+		status = model.PurchaseTransactionStatus(transactionBob.Status.String())
+	}
+
+	var providerTransactionID *string
+	if !transactionBob.ProviderTransactionID.IsNull() {
+		val := transactionBob.ProviderTransactionID.MustGet()
+		providerTransactionID = &val
+	}
+
+	var paidAt *time.Time
+	if !transactionBob.PaidAt.IsNull() {
+		val := transactionBob.PaidAt.MustGet()
+		paidAt = &val
+	}
+
+	return &model.IntellectualPropertyPurchaseTransaction{
+		ID:                    transactionID,
+		UserID:                userID,
+		IPCategoryID:          ipCategoryID,
+		PurchaseQuantity:      int(transactionBob.PurchaseQuantity),
+		PurchasePrice:         transactionBob.PurchasePrice.InexactFloat64(),
+		PaymentMethod:         paymentMethod,
+		ProviderTransactionID: providerTransactionID,
+		Status:                status,
+		PaidAt:                paidAt,
+		CreatedAt:             transactionBob.CreatedAt,
+		UpdatedAt:             transactionBob.UpdatedAt,
+	}, nil
+}
+
+func BobPurchaseTransactionSliceToModelPurchaseTransactionSlice(transactions []*models.PurchaseTransaction) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
+	return util.MapWithErr(transactions, BobPurchaseTransactionToModelPurchaseTransaction)
+}
+
+func ModelPurchaseTransactionToBobPurchaseTransactionSetter(transaction *model.IntellectualPropertyPurchaseTransaction) *models.PurchaseTransactionSetter {
+	setter := &models.PurchaseTransactionSetter{
+		ID:              omit.From(transaction.ID.String()),
+		UserID:          omit.From(transaction.UserID.String()),
+		IPCategoryID:    omit.From(transaction.IPCategoryID.String()),
+		PurchaseQuantity: omit.From(int32(transaction.PurchaseQuantity)),
+		PurchasePrice:   omit.From(decimal.NewFromFloat(transaction.PurchasePrice)),
+		PaymentMethod:   omit.From(enums.PurchaseTransactionsPaymentMethod(transaction.PaymentMethod.String())),
+		Status:          omit.From(enums.PurchaseTransactionsStatus(transaction.Status.String())),
+		UpdatedAt:       omit.From(transaction.UpdatedAt),
+	}
+	if transaction.PaidAt != nil {
+		setter.PaidAt = omitnull.From(*transaction.PaidAt)
+	}
+	if transaction.ProviderTransactionID != nil {
+		setter.ProviderTransactionID = omitnull.From(*transaction.ProviderTransactionID)
+	}
+	return setter
 }
 
 

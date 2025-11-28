@@ -4,13 +4,12 @@ import (
 	"time"
 )
 
-func NewIPCategoryPurchaseTransaction(ipCategory *IntellectualPropertyCategory, purchaseQuantity int) (*IntellectualPropertyPurchaseTransaction, error) {
+func NewIPCategoryPurchaseTransaction(userID ID, ipCategory *IntellectualPropertyCategory, purchaseQuantity int) (*IntellectualPropertyPurchaseTransaction, error) {
 	now := time.Now()
 	purchasePrice := ipCategory.Price * float64(purchaseQuantity)
 	transaction := &IntellectualPropertyPurchaseTransaction{
 		ID: NewID(),
-		// ユーザー機能作ってから追加
-		// UserID: userID,
+		UserID: userID,
 		IPCategoryID: ipCategory.ID,
 		PurchaseQuantity: purchaseQuantity,
 		PurchasePrice: purchasePrice,

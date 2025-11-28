@@ -68,6 +68,7 @@ type IntellectualPropertyPurchaseHistory struct {
 
 type IntellectualPropertyPurchaseTransaction struct {
 	ID                    ID                                     `json:"id"`
+	UserID                ID                                     `json:"userId"`
 	IPCategoryID          ID                                     `json:"ipCategoryId"`
 	PurchaseQuantity      int                                    `json:"purchaseQuantity"`
 	PurchasePrice         float64                                `json:"purchasePrice"`

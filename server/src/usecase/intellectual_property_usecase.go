@@ -41,6 +41,10 @@ func (u *intellectualPropertyUseCase) ListIntellectualPropertiesByRankGroupID(ct
 	return u.repos.IntellectualProperty.ListPropertiesByRankGroupID(ctx, rankGroupID)
 }
 
+func (u *intellectualPropertyUseCase) GetIntellectualPropertyByID(ctx context.Context, id model.ID) (*model.IntellectualProperty, error) {
+	return u.repos.IntellectualProperty.GetPropertyByID(ctx, id)
+}
+
 func (u *intellectualPropertyUseCase) GetCategoryByID(ctx context.Context, id model.ID) (*model.IntellectualPropertyCategory, error) {
 	return u.repos.IntellectualProperty.GetCategoryByID(ctx, id)
 }
@@ -53,7 +57,7 @@ func (u *intellectualPropertyUseCase) GetRankGroupByID(ctx context.Context, id m
 	return u.repos.IntellectualProperty.GetRankGroupByID(ctx, id)
 }
 
-func (u *intellectualPropertyUseCase) DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error) {
+func (u *intellectualPropertyUseCase) DrawIntellectualProperty(ctx context.Context, userID model.ID, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error) {
 	// 在庫チェック
 	// INPUTのCATEGORYIDから対象のcATEGORYと紐づくRANKgROUPと紐づくPROPERTYを取得して、在庫チェックを行う
 	ipCategoryAggregate, err := u.repos.IntellectualProperty.GetIPCategoryAggregateByCategoryIDWithPessimisticLock(ctx, input.IPCategoryID)
@@ -66,7 +70,7 @@ func (u *intellectualPropertyUseCase) DrawIntellectualProperty(ctx context.Conte
 	}
 
 	// 購入トランザクション作成
-	ipCategoryPurchaseTransaction, err := model.NewIPCategoryPurchaseTransaction(ipCategoryAggregate.Category, input.DrawCount)
+	ipCategoryPurchaseTransaction, err := model.NewIPCategoryPurchaseTransaction(userID, ipCategoryAggregate.Category, input.DrawCount)
 	if err != nil {
 		return nil, err
 	}
@@ -93,24 +97,26 @@ func (u *intellectualPropertyUseCase) DrawIntellectualProperty(ctx context.Conte
 	// 抽選が完了したらトランザクションを更新
 	ipCategoryPurchaseTransaction.UpdateStatusDrawSuccess()
 
+	purchaseHistories := make([]*model.IntellectualPropertyPurchaseHistory, 0, len(results))
+	for _, property := range results {
+		purchaseHistory := model.NewIntellectualPropertyPurchaseHistory(ipCategoryPurchaseTransaction.ID, property.ID)
+		purchaseHistories = append(purchaseHistories, purchaseHistory)
+	}
+
+	purchaseTransactionWithHistories := model.NewIntellectualPropertyPurchaseTransactionWithHistories(ipCategoryPurchaseTransaction, purchaseHistories)
+
 	err = repository.RunInTx(ctx, func(ctx context.Context) error {
 		// 購入トランザクション作成
-		// err, := u.repos.IntellectualProperty.CreateIPCategoryPurchaseTransaction(ctx, input.IPCategoryID, input.DrawCount)
-		// if err != nil {
-		// 	return err
-		// }
+		err = u.repos.IntellectualProperty.CreateIPCategoryPurchaseTransaction(ctx, purchaseTransactionWithHistories)
+		if err != nil {
+			return err
+		}
 
 		// aggregateの在庫を更新
 		err = u.repos.IntellectualProperty.UpdateIPPropertiesStock(ctx, results)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-
-		// 購入履歴作成
-		// err = u.repos.IntellectualProperty.CreatePurchaseTransaction(ctx, input.IPCategoryID, input.DrawCount)
-		// if err != nil {
-		// 	return errors.WithStack(err)
-		// }
 
 		return nil
 	})
@@ -120,4 +126,12 @@ func (u *intellectualPropertyUseCase) DrawIntellectualProperty(ctx context.Conte
 
 	// 本当はくじを引ける最大個数を渡してクライアントが選択した個数分引いてくじを開くという流れになる予定だが、今回は簡略化のためにそのまま抽選結果を返す
 	return results, nil
+}
+
+func (u *intellectualPropertyUseCase) ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx context.Context, purchaseTransactionID model.ID) ([]*model.IntellectualPropertyPurchaseHistory, error) {
+	return u.repos.IntellectualProperty.ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx, purchaseTransactionID)
+}
+
+func (u *intellectualPropertyUseCase) ListPurchaseTransactionsByUserID(ctx context.Context, userID model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
+	return u.repos.IntellectualProperty.ListPurchaseTransactionsByUserID(ctx, userID)
 }

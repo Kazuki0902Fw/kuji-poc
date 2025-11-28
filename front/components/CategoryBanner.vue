@@ -1,17 +1,10 @@
 <template>
   <div class="banner-container">
-    <!-- Branding -->
-    <div class="branding">
-      <div class="branding-box">
-        <svg class="branding-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        </svg>
-        <span class="branding-text">&lt;くじコレ&gt;</span>
-      </div>
-    </div>
-
     <!-- Banner Image and Content -->
-    <div class="banner-content" :style="bannerStyle">
+    <div class="banner-content">
+      <!-- Background Image -->
+      <div class="banner-background" :style="bannerStyle"></div>
+      
       <!-- SAMPLE Watermark -->
       <div class="sample-watermark">SAMPLE</div>
 
@@ -23,19 +16,17 @@
           </div>
         </div>
 
-        <!-- Title -->
-        <div class="banner-title">
-          {{ category.name }}
-        </div>
+        <!-- Title and Date Container -->
+        <div class="banner-content-right">
+          <!-- Title -->
+          <div class="banner-title">
+            {{ category.name }}
+          </div>
 
-        <!-- Date Info -->
-        <div class="banner-date">
-          {{ formatDate(category.salesStartDate) }}～{{ formatDate(category.salesEndDate) }}
-        </div>
-
-        <!-- Copyright -->
-        <div v-if="category.precautions" class="banner-copyright">
-          {{ category.precautions }}
+          <!-- Date Info -->
+          <div class="banner-date">
+            {{ formatDate(category.salesEndDate) }}まで
+          </div>
         </div>
       </div>
     </div>
@@ -89,34 +80,8 @@ const formatDate = (dateStr) => {
   position: relative;
   width: 100%;
   margin-bottom: 20px;
-}
-
-.branding {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-}
-
-.branding-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #ff9900;
-  padding: 8px 12px;
-  border-radius: 4px;
-}
-
-.branding-icon {
-  width: 20px;
-  height: 20px;
-  color: white;
-}
-
-.branding-text {
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .banner-content {
@@ -125,6 +90,17 @@ const formatDate = (dateStr) => {
   height: 300px;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.banner-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
 }
 
 .sample-watermark {
@@ -163,21 +139,30 @@ const formatDate = (dateStr) => {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 20px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 12px 20px;
+  background-color: black;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
   z-index: 6;
 }
 
 .status-button-container {
   display: flex;
-  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.banner-content-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
 }
 
 .status-button {
-  padding: 6px 12px;
+  padding: 10px 12px;
   border-radius: 4px;
   font-size: 0.9rem;
   font-weight: bold;
@@ -197,22 +182,18 @@ const formatDate = (dateStr) => {
 }
 
 .banner-title {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: bold;
   color: white;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
 }
 
 .banner-date {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: white;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.banner-copyright {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
 }
 
 @media screen and (max-width: 767px) {
@@ -221,20 +202,17 @@ const formatDate = (dateStr) => {
   }
 
   .banner-overlay {
-    padding: 15px;
+    padding: 10px 15px;
   }
 
   .banner-title {
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 
   .banner-date {
-    font-size: 0.85rem;
-  }
-
-  .banner-copyright {
     font-size: 0.75rem;
   }
 }
 </style>
+
 

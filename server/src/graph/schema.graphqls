@@ -111,8 +111,7 @@ enum PurchaseTransactionStatus {
 
 type IntellectualPropertyPurchaseTransaction {
   id: ID!
-  # ログイン機能が実装されたら追加
-  # userId: ID!
+  userId: ID!
   ipCategoryId: ID!
   purchaseQuantity: Int!
   purchasePrice: Float!
@@ -138,12 +137,6 @@ type IntellectualPropertyPurchaseHistory {
 
 type Query {
   me: User!
-  # 登録されているユーザー一覧（管理画面用）
-    # 各ユーザーの何を表示させるか
-    # - 基本情報
-    # - 配送先
-    # - クレジットカード
-    # - 購入履歴
   users: [User!]! # @isAdmin
   # トップページで表示するカテゴリー一覧(くじ引きアプリ・管理画面用)
   intellectualPropertyCategories: [IntellectualPropertyCategory!]!
@@ -155,7 +148,7 @@ type Query {
   # ナビゲーションバー周り
   # -------
   # くじ結果一覧（購入履歴）(くじ引きアプリ用)
-  purchaseTransactions(userId: ID): [IntellectualPropertyPurchaseTransaction!]!
+  purchaseTransactions: [IntellectualPropertyPurchaseTransaction!]!
   # 基本情報・メルマガ配信設定(くじ引きアプリ用)
   # user(userId: ID!): User!
   # 配送先(くじ引きアプリ用)
@@ -170,8 +163,6 @@ type Query {
   # notifications: [Notification!]!
 }
 input CheckStockInput {
-  # ログイン機能が実装されたら追加
-  # userId: ID!
   ipCategoryId: ID!
   drawCount: Int!
 }
@@ -180,8 +171,6 @@ type CheckStockResult {
 }
 
 input DrawIntellectualPropertyInput {
-  # ログイン機能が実装されたら追加
-  # userId: ID!
   ipCategoryId: ID!
   drawCount: Int!
 }

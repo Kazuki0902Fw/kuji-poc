@@ -86,7 +86,7 @@
             class="rank-group-card"
           >
             <div class="rank-group-header">
-              <span :class="['rank-badge', `rank-badge-${rankGroup.rank.toLowerCase()}`]">{{ rankGroup.rank }}賞</span>
+              <span :class="['rank-badge', rankGroup.rank ? `rank-badge-${rankGroup.rank.toLowerCase()}` : '']">{{ rankGroup.rank }}賞</span>
               <h3 class="rank-group-name">{{ rankGroup.name }}</h3>
               <span class="emission-rate">当選確率: {{ rankGroup.emissionRate }} / 100</span>
             </div>
@@ -141,7 +141,7 @@
                 :key="i" 
                 :value="i"
               >
-                {{ i }}枚
+                {{ i }}個
               </option>
             </select>
           </div>
@@ -153,10 +153,7 @@
             class="draw-button"
           >
             <span>{{ isDrawing ? '抽選中...' : 'くじを引く' }}</span>
-            <svg class="draw-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="13 17 18 12 13 7"></polyline>
-              <polyline points="6 17 11 12 6 7"></polyline>
-            </svg>
+            <span class="draw-button-arrow">></span>
           </button>
         </div>
       </div>
@@ -167,7 +164,7 @@
           <h2 class="result-title">抽選結果</h2>
           <div class="result-items">
             <div v-for="(item, index) in drawResult" :key="index" class="result-item">
-              <div :class="['result-rank-badge', `rank-badge-${item.rank.toLowerCase()}`]">
+              <div :class="['result-rank-badge', item.rank ? `rank-badge-${item.rank.toLowerCase()}` : '']">
                 {{ item.rank }}賞
               </div>
               <img v-if="item.imgUrl" :src="item.imgUrl" :alt="item.name" class="result-image" />
@@ -558,10 +555,9 @@ const formatSalesPeriod = (startDate, endDate) => {
 }
 
 .rank-group-card {
-  border: 1px solid #e0e0e0;
+  border: 2px solid #e0e0e0;
   border-radius: 8px;
   padding: 20px;
-  background-color: #fafafa;
 }
 
 .rank-group-header {
@@ -630,6 +626,7 @@ const formatSalesPeriod = (startDate, endDate) => {
 
 .emission-rate {
   font-size: 0.95rem;
+  font-weight: bold;
   color: #666;
   white-space: nowrap;
 }
@@ -645,6 +642,17 @@ const formatSalesPeriod = (startDate, endDate) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  background-color: white;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.property-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .property-image-container {
@@ -677,7 +685,7 @@ const formatSalesPeriod = (startDate, endDate) => {
 
 .explanation {
   padding: 15px;
-  background-color: #f8f9fa;
+  background-color: #eff4f8;
   border-radius: 4px;
   font-size: 0.95rem;
   color: #666;
@@ -687,14 +695,18 @@ const formatSalesPeriod = (startDate, endDate) => {
 
 .draw-section {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: white;
-  border-top: 2px solid #e0e0e0;
+  border: 2px solid #c30000;
+  border-radius: 8px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   padding: 15px 20px;
   z-index: 100;
   transition: bottom 0.3s ease;
+  max-width: 1200px;
+  width: calc(100% - 40px);
+  box-sizing: border-box;
 }
 
 .countdown-timer {
@@ -712,6 +724,7 @@ const formatSalesPeriod = (startDate, endDate) => {
   gap: 20px;
   max-width: 800px;
   margin: 0 auto;
+  padding: 0 30px;
 }
 
 .quantity-selector {
@@ -726,7 +739,7 @@ const formatSalesPeriod = (startDate, endDate) => {
 }
 
 .draw-select {
-  padding: 10px 15px;
+  padding: 10px 30px 10px 15px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
@@ -738,36 +751,34 @@ const formatSalesPeriod = (startDate, endDate) => {
   align-items: center;
   gap: 10px;
   padding: 12px 30px;
-  background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(255, 255, 255, 0.1) 10px,
-    rgba(255, 255, 255, 0.1) 20px
-  );
+  background-color: #c30000;
   color: white;
-  border: none;
+  border: 2px solid #c30000;
   border-radius: 4px;
   font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .draw-button:hover:not(:disabled) {
   transform: scale(1.05);
+  background-color: #d31a1a;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .draw-button:disabled {
-  background: #ccc;
   background-image: none;
+  color: white;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
-.draw-button-icon {
-  width: 24px;
-  height: 24px;
+.draw-button-arrow {
+  font-size: 1.2rem;
+  font-weight: bold;
+  line-height: 1;
 }
 
 .result-modal-overlay {

@@ -110,6 +110,7 @@ type ComplexityRoot struct {
 		PurchaseQuantity      func(childComplexity int) int
 		Status                func(childComplexity int) int
 		UpdatedAt             func(childComplexity int) int
+		UserID                func(childComplexity int) int
 	}
 
 	IntellectualPropertyRankGroup struct {
@@ -139,7 +140,7 @@ type ComplexityRoot struct {
 		IntellectualPropertyCategories func(childComplexity int) int
 		IntellectualPropertyCategory   func(childComplexity int, ipCategoryID model.ID) int
 		Me                             func(childComplexity int) int
-		PurchaseTransactions           func(childComplexity int, userID *model.ID) int
+		PurchaseTransactions           func(childComplexity int) int
 		Users                          func(childComplexity int) int
 	}
 
@@ -181,7 +182,7 @@ type QueryResolver interface {
 	IntellectualPropertyCategories(ctx context.Context) ([]*model.IntellectualPropertyCategory, error)
 	IntellectualPropertyCategory(ctx context.Context, ipCategoryID model.ID) (*model.IntellectualPropertyCategory, error)
 	CheckStock(ctx context.Context, input model.CheckStockInput) (*model.CheckStockResult, error)
-	PurchaseTransactions(ctx context.Context, userID *model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error)
+	PurchaseTransactions(ctx context.Context) ([]*model.IntellectualPropertyPurchaseTransaction, error)
 }
 
 type executableSchema struct {
@@ -460,6 +461,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.IntellectualPropertyPurchaseTransaction.UpdatedAt(childComplexity), true
+	case "IntellectualPropertyPurchaseTransaction.userId":
+		if e.complexity.IntellectualPropertyPurchaseTransaction.UserID == nil {
+			break
+		}
+
+		return e.complexity.IntellectualPropertyPurchaseTransaction.UserID(childComplexity), true
 
 	case "IntellectualPropertyRankGroup.comments":
 		if e.complexity.IntellectualPropertyRankGroup.Comments == nil {
@@ -613,12 +620,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		args, err := ec.field_Query_purchaseTransactions_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.PurchaseTransactions(childComplexity, args["userId"].(*model.ID)), true
+		return e.complexity.Query.PurchaseTransactions(childComplexity), true
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
 			break
@@ -878,17 +880,6 @@ func (ec *executionContext) field_Query_intellectualPropertyCategory_args(ctx co
 		return nil, err
 	}
 	args["ipCategoryId"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_purchaseTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID)
-	if err != nil {
-		return nil, err
-	}
-	args["userId"] = arg0
 	return args, nil
 }
 
@@ -1904,6 +1895,35 @@ func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_id(ctx cont
 }
 
 func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "IntellectualPropertyPurchaseTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _IntellectualPropertyPurchaseTransaction_userId(ctx context.Context, field graphql.CollectedField, obj *model.IntellectualPropertyPurchaseTransaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_IntellectualPropertyPurchaseTransaction_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNID2kujicoleᚋdomainᚋmodelᚐID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_IntellectualPropertyPurchaseTransaction_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "IntellectualPropertyPurchaseTransaction",
 		Field:      field,
@@ -3052,8 +3072,7 @@ func (ec *executionContext) _Query_purchaseTransactions(ctx context.Context, fie
 		field,
 		ec.fieldContext_Query_purchaseTransactions,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PurchaseTransactions(ctx, fc.Args["userId"].(*model.ID))
+			return ec.resolvers.Query().PurchaseTransactions(ctx)
 		},
 		nil,
 		ec.marshalNIntellectualPropertyPurchaseTransaction2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyPurchaseTransactionᚄ,
@@ -3062,7 +3081,7 @@ func (ec *executionContext) _Query_purchaseTransactions(ctx context.Context, fie
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_purchaseTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_purchaseTransactions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3072,6 +3091,8 @@ func (ec *executionContext) fieldContext_Query_purchaseTransactions(ctx context.
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_userId(ctx, field)
 			case "ipCategoryId":
 				return ec.fieldContext_IntellectualPropertyPurchaseTransaction_ipCategoryId(ctx, field)
 			case "purchaseQuantity":
@@ -3095,17 +3116,6 @@ func (ec *executionContext) fieldContext_Query_purchaseTransactions(ctx context.
 			}
 			return nil, fmt.Errorf("no field named %q was found under type IntellectualPropertyPurchaseTransaction", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_purchaseTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -5482,6 +5492,11 @@ func (ec *executionContext) _IntellectualPropertyPurchaseTransaction(ctx context
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "userId":
+			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_userId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "ipCategoryId":
 			out.Values[i] = ec._IntellectualPropertyPurchaseTransaction_ipCategoryId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -7152,22 +7167,6 @@ func (ec *executionContext) marshalODateTime2ᚖtimeᚐTime(ctx context.Context,
 	_ = ctx
 	res := graphql.MarshalTime(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID(ctx context.Context, v any) (*model.ID, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(model.ID)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOID2ᚖkujicoleᚋdomainᚋmodelᚐID(ctx context.Context, sel ast.SelectionSet, v *model.ID) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return v
 }
 
 func (ec *executionContext) marshalOIntellectualPropertyRankGroup2ᚕᚖkujicoleᚋdomainᚋmodelᚐIntellectualPropertyRankGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.IntellectualPropertyRankGroup) graphql.Marshaler {

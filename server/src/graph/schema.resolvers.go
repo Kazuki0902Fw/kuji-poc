@@ -21,12 +21,20 @@ func (r *intellectualPropertyCategoryResolver) RankGroups(ctx context.Context, o
 
 // IntellectualProperty is the resolver for the intellectualProperty field.
 func (r *intellectualPropertyPurchaseHistoryResolver) IntellectualProperty(ctx context.Context, obj *model.IntellectualPropertyPurchaseHistory) (*model.IntellectualProperty, error) {
-	panic(fmt.Errorf("not implemented: IntellectualProperty - intellectualProperty"))
+	property, err := r.UseCases.GetIntellectualPropertyByID(ctx, obj.IntellectualPropertyID)
+	if err != nil {
+		return nil, err
+	}
+	return property, nil
 }
 
 // PurchaseHistories is the resolver for the purchaseHistories field.
 func (r *intellectualPropertyPurchaseTransactionResolver) PurchaseHistories(ctx context.Context, obj *model.IntellectualPropertyPurchaseTransaction) ([]*model.IntellectualPropertyPurchaseHistory, error) {
-	panic(fmt.Errorf("not implemented: PurchaseHistories - purchaseHistories"))
+	purchaseHistories, err := r.UseCases.ListIntellectualPropertyPurchaseHistoriesByPurchaseTransactionID(ctx, obj.ID)
+	if err != nil {
+		return nil, err
+	}
+	return purchaseHistories, nil
 }
 
 // Properties is the resolver for the properties field.
@@ -71,7 +79,11 @@ func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
 
 // DrawIntellectualProperty is the resolver for the drawIntellectualProperty field.
 func (r *mutationResolver) DrawIntellectualProperty(ctx context.Context, input model.DrawIntellectualPropertyInput) ([]*model.IntellectualProperty, error) {
-	results, err := r.UseCases.DrawIntellectualProperty(ctx, input)
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	results, err := r.UseCases.DrawIntellectualProperty(ctx, userID, input)
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +136,17 @@ func (r *queryResolver) CheckStock(ctx context.Context, input model.CheckStockIn
 }
 
 // PurchaseTransactions is the resolver for the purchaseTransactions field.
-func (r *queryResolver) PurchaseTransactions(ctx context.Context, userID *model.ID) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
-	panic(fmt.Errorf("not implemented: PurchaseTransactions - purchaseTransactions"))
+func (r *queryResolver) PurchaseTransactions(ctx context.Context) ([]*model.IntellectualPropertyPurchaseTransaction, error) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("userID", userID)
+	transactions, err := r.UseCases.ListPurchaseTransactionsByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return transactions, nil
 }
 
 // IntellectualPropertyCategory returns IntellectualPropertyCategoryResolver implementation.
@@ -160,3 +181,19 @@ type intellectualPropertyPurchaseTransactionResolver struct{ *Resolver }
 type intellectualPropertyRankGroupResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *intellectualPropertyResolver) RankGroup(ctx context.Context, obj *model.IntellectualProperty) (*model.IntellectualPropertyRankGroup, error) {
+	rankGroup, err := r.UseCases.GetRankGroupByID(ctx, obj.IPRankGroupID)
+	if err != nil {
+		return nil, err
+	}
+	return rankGroup, nil
+}
+*/

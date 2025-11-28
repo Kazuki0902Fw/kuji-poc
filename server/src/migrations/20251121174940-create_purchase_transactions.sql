@@ -2,7 +2,7 @@
 -- +migrate Up
 CREATE TABLE purchase_transactions (
     id VARCHAR(64) NOT NULL,
-    -- user_id VARCHAR(64) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
     ip_category_id VARCHAR(64) NOT NULL,
     purchase_quantity INT NOT NULL,
     purchase_price DECIMAL NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE purchase_transactions (
     updated_at DATETIME NOT NULL DEFAULT current_timestamp ON UPDATE current_timestamp,
 
     PRIMARY KEY (id),
-    -- FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (ip_category_id) REFERENCES intellectual_property_categories(id) ON DELETE CASCADE
 );
 
