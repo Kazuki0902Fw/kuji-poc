@@ -9,6 +9,16 @@ services:
     ports:
       - "3010:3010"
     command: ["npm", "run", "dev"]
+    networks:
+      - server-shared
+    environment:
+      - NUXT_GQL_HOST=http://app:5050/query
+      - NUXT_PUBLIC_GQL_HOST=http://localhost:5050/query
 
 volumes:
   node_modules:
+
+networks:
+  server-shared:
+    external: true
+    name: server_default

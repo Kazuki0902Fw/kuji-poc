@@ -9,14 +9,15 @@ import (
 	"syscall"
 	"time"
 
-	"kujicole/graph"
-	"kujicole/configration"
-	"kujicole/logger"
-	"kujicole/usecase"
+	configuration "kujicole/configration"
 	domainErr "kujicole/domain/error"
 	"kujicole/domain/repository"
-	customEchoMiddleware "kujicole/infra/echo/middleware"
+	"kujicole/graph"
 	"kujicole/infra/authtoken"
+	customEchoMiddleware "kujicole/infra/echo/middleware"
+	"kujicole/logger"
+	"kujicole/usecase"
+
 	// gqlCustomExtension "kujicole/infra/gql/extension"
 	"kujicole/infra/mysql"
 
@@ -25,11 +26,11 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/stephenafamo/bob"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/pkg/errors"
+	"github.com/stephenafamo/bob"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 const defaultPort = "5050"
@@ -42,8 +43,8 @@ func main() {
 	// Setup database connection
 	// --------------------------------------------------
 	var (
-		conn    *bob.DB
-		err     error
+		conn *bob.DB
+		err  error
 	)
 
 	maxTry := 5
@@ -172,9 +173,29 @@ func main() {
 	})
 
 	e := echo.New()
+
+	allowOrigins := conf.CORS.AllowOrigins
+	if len(allowOrigins) == 0 {
+		allowOrigins = []string{"*"}
+	}
+	allowAllOrigins := len(allowOrigins) == 1 && allowOrigins[0] == "*"
+
+	corsConfig := echomiddleware.CORSConfig{
+		AllowOrigins:     allowOrigins,
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderXRequestedWith},
+		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions},
+		AllowCredentials: true,
+	}
+	if allowAllOrigins {
+		corsConfig.AllowOrigins = nil
+		corsConfig.AllowOriginFunc = func(origin string) (bool, error) {
+			return true, nil
+		}
+	}
+
 	e.Use(
 		echomiddleware.Logger(),
-		echomiddleware.CORS(),
+		echomiddleware.CORSWithConfig(corsConfig),
 		(&customEchoMiddleware.AddUserIDMiddleware{
 			Service: authTokenService,
 		}).MiddlewareFunc(),

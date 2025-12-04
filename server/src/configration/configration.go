@@ -9,6 +9,10 @@ type Config struct {
 	Port string `envconfig:"PORT" required:"true"`
 	Env  string `envconfig:"ENV" required:"true"`
 
+	CORS struct {
+		AllowOrigins []string `envconfig:"CORS_ALLOW_ORIGINS" default:"*"`
+	}
+
 	Database struct {
 		DSN                   string `envconfig:"DATABASE_DSN" required:"true"`
 		MaxOpenConnections    int    `envconfig:"DATABASE_MAX_OPEN_CONNECTIONS" default:"5"`
